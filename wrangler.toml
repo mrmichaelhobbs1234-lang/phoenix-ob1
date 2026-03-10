@@ -1,0 +1,49 @@
+name = "phoenix-ob1"
+main = "src/reincarnate.js"
+compatibility_date = "2024-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+vars = { WORKER_VERSION = "v134-CHAOS-MAGIC", DEPLOYED_AT = "2026-03-10T00:00:00Z" }
+
+[[kv_namespaces]]
+binding = "SOUL_DNA"
+# ⚠️ P0 BLOCKER — fill from Cloudflare dashboard before deploying
+id = "FILL_FROM_CLOUDFLARE_DASHBOARD"
+preview_id = "FILL_FROM_CLOUDFLARE_DASHBOARD_PREVIEW"
+
+# DURABLE OBJECTS
+# ⚠️ MIGRATION TAGS ARE SACRED — DO NOT RENUMBER OR RENAME
+# Renaming destroys DO SQLite storage on redeploy.
+
+[[durable_objects.bindings]]
+name = "LEDGER"
+class_name = "LedgerDO"
+
+[[durable_objects.bindings]]
+name = "SESSIONS"
+class_name = "SessionDO"
+
+[[durable_objects.bindings]]
+name = "STUDENT_PROFILES"
+class_name = "StudentProfileDO"
+
+[[durable_objects.bindings]]
+name = "RATELIMITER"
+class_name = "RateLimiterDO"
+
+[[migrations]]
+tag = "v1-genesis"
+new_sqlite_classes = ["SessionDO"]
+
+[[migrations]]
+tag = "v2-student-profiles"
+new_sqlite_classes = ["StudentProfileDO"]
+
+[[migrations]]
+tag = "v3-ledger-physics"
+new_sqlite_classes = ["LedgerDO"]
+
+[[migrations]]
+tag = "v4-rate-limiter"
+new_sqlite_classes = ["RateLimiterDO"]
