@@ -1,0 +1,39 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Phoenix OB1 to Cloudflare
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Debug context
+        run: |
+          pwd && ls -la
+          echo "=== wrangler.toml ==="
+          sed -n '1,50p' wrangler.toml || true
+          echo "=== src/reincarnate.js ==="
+          ls -la src/reincarnate.js || echo "WARNING: src/reincarnate.js not found"
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG: debug
+        run: |
+          npx wrangler --version
+          npx wrangler deploy --config ./wrangler.toml ./src/reincarnate.js 2>&1 | tee wrangler.out
+          echo "=== REAL_URL_LINES ==="
+          grep -E "workers.dev|https://|Deployed|Uploaded|Current Deployment|Name:" wrangler.out || true

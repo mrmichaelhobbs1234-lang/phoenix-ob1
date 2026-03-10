@@ -1,0 +1,52 @@
+name: Chaos Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'  # unified — was Node 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Pre-deploy gate — Syntax check
+        run: npx wrangler validate || echo "WARNING — wrangler validate failed"
+
+      - name: Pre-deploy gate — Body guard audit
+        run: |
+          echo "Checking for safeJsonBytes usage..."
+          grep -n "safeJsonBytes" src/reincarnate.js || echo "WARNING — safeJsonBytes not found in src/reincarnate.js"
+
+      - name: Deploy to Cloudflare Workers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy
+
+      - name: Post-deploy gate — Health check
+        run: |
+          sleep 5
+          curl -f https://phoenix-ob1.mrmichaelhobbs1234.workers.dev/health || exit 1
+
+      - name: Post-deploy gate — Evidence check
+        run: |
+          curl -f https://phoenix-ob1.mrmichaelhobbs1234.workers.dev/evidence || exit 1
+
+      - name: Post-deploy gate — Ledger verify check
+        run: |
+          curl -f https://phoenix-ob1.mrmichaelhobbs1234.workers.dev/ledgerverify || exit 1
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Post-deploy gates failed — triggering rollback"
+          git revert HEAD --no-edit
+          npx wrangler deploy

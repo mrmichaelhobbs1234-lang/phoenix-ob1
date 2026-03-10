@@ -1,0 +1,35 @@
+name: Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Run diagnostics
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "=== wrangler whoami ==="
+          npx wrangler whoami 2>&1 | tee DIAGNOSTIC_OUTPUT.txt
+          echo "=== wrangler deployments list ==="
+          npx wrangler deployments list 2>&1 | tee -a DIAGNOSTIC_OUTPUT.txt
+
+      - name: Commit diagnostic output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add DIAGNOSTIC_OUTPUT.txt
+          git diff --cached --quiet || git commit -m "chore: diagnostic output [skip ci]"
+          git push
