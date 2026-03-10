@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "generated": "2026-03-10",
+  "canonical_worker": "phoenix-ob1-system",
+  "protocol": "PHOENIX_RISING_PROTOCOL_STAGE_04_SWARM_BENCHMARKS",
+  "law": "NO_EXECUTION_WITHOUT_DEFINITION",
+  "benchmarks": [
+    {
+      "benchmarkId": "B0",
+      "name": "VOICE_RUNTIME_TRUTH",
+      "class": "RUNTIME_SURFACE",
+      "target": "deepgram_ws_binary_pipeline",
+      "route": "/deepgram-ws",
+      "currentStatus": "BUILDING",
+      "entryCriteria": [
+        "canonical_worker_live",
+        "ws_route_present",
+        "DEEPGRAM_API_KEY bound and in /health benchmark check"
+      ],
+      "exitCriteria": [
+        "upgrade_success",
+        "binary_first_frame",
+        "transcript_returned",
+        "console_clean"
+      ],
+      "evidenceRequired": [
+        "ws_upgrade_proof",
+        "transcript_artifact",
+        "network_trace",
+        "timestamped_test_note"
+      ],
+      "blockers": [
+        "BLK-10: DEEPGRAM_API_KEY not surfaced in /health benchmarks"
+      ],
+      "regressionRules": [
+        "any_nonbinary_start_frame_is_regression",
+        "json_control_frame_on_open_is_regression"
+      ],
+      "failureClasses": [
+        "json_control_contamination",
+        "ws_auth_missing",
+        "upstream_unreachable",
+        "budget_exhausted"
+      ],
+      "pheromoneSuccess": "SUCCESSPHEROMONE:VALIDATED:B0",
+      "statusTransitions": ["NOT_STARTED", "BUILDING", "COMPLETE", "REGRESSED"]
+    },
+    {
+      "benchmarkId": "B1",
+      "name": "MAGIC_CHAT_TRUTH",
+      "class": "FUNCTIONAL_SURFACE",
+      "target": "chat_route_plus_obi_persona",
+      "route": "/chat",
+      "currentStatus": "PARTIAL",
+      "entryCriteria": [
+        "CHAT_KEY bound",
+        "SessionDO live",
+        "routeAI function present",
+        "OBI_SYSTEM_PROMPT locked as code constant"
+      ],
+      "exitCriteria": [
+        "auth_enforced",
+        "history_context_used",
+        "obi_response_returned",
+        "forbidden_phrases_absent",
+        "provider != stub"
+      ],
+      "evidenceRequired": [
+        "request_response_pair",
+        "session_history_proof",
+        "persona_fidelity_note",
+        "rate_limit_headers"
+      ],
+      "blockers": [
+        "BLK-11: no SUCCESSPHEROMONE emitter",
+        "stub_reply_is_silent_failure"
+      ],
+      "regressionRules": [
+        "persona_or_auth_regression_downgrades_complete",
+        "stub_provider_counts_as_regression_if_previously_live"
+      ],
+      "failureClasses": [
+        "generic_assistant_tone",
+        "stub_reply",
+        "missing_history",
+        "forbidden_phrase_leak"
+      ],
+      "pheromoneSuccess": "SUCCESSPHEROMONE:VALIDATED:B1",
+      "statusTransitions": ["NOT_STARTED", "BUILDING", "COMPLETE", "PARTIAL", "REGRESSED"]
+    },
+    {
+      "benchmarkId": "B2",
+      "name": "LEDGER_TRUTH",
+      "class": "INTEGRITY_SURFACE",
+      "target": "ledger_append_verify_range_physics",
+      "route": "/ledgerverify",
+      "currentStatus": "OPERATIONALLY_STRONG",
+      "entryCriteria": [
+        "LEDGER DO binding live",
+        "verify route real (hash recompute per block)",
+        "range route real (not paginated fiction)",
+        "GENESIS_HASH = '0'.repeat(64) locked"
+      ],
+      "exitCriteria": [
+        "append_ok",
+        "verify_valid_true",
+        "range_paginates_real_blocks",
+        "chain_break_freezes_ledger"
+      ],
+      "evidenceRequired": [
+        "append_receipt",
+        "verify_response_with_chainHead",
+        "range_response_with_blocks",
+        "manual_hash_check"
+      ],
+      "blockers": [
+        "BLK-11: no SUCCESSPHEROMONE:VALIDATED:B2 emitter"
+      ],
+      "regressionRules": [
+        "any_break_or_placeholder_drops_to_FAIL",
+        "frozen_chain_is_permanent_until_manual_intervention"
+      ],
+      "failureClasses": [
+        "placeholder_verify",
+        "hash_mismatch",
+        "prevHash_break",
+        "frozen_chain",
+        "pagination_fake"
+      ],
+      "pheromoneSuccess": "SUCCESSPHEROMONE:VALIDATED:B2",
+      "statusTransitions": ["NOT_STARTED", "BUILDING", "OPERATIONALLY_STRONG", "COMPLETE", "REGRESSED"]
+    },
+    {
+      "benchmarkId": "B3",
+      "name": "KNOWLEDGE_MINING_TRUTH",
+      "class": "DATA_SURFACE",
+      "target": "mine_route_plus_chat_log_ingest",
+      "route": "/mine",
+      "currentStatus": "BLOCKED",
+      "entryCriteria": [
+        "GITHUB_TOKEN bound",
+        "repo_target declared in /mine handler",
+        "SOUL_DNA KV sink ready",
+        "real mine logic present (not gate-stub)"
+      ],
+      "exitCriteria": [
+        "mine_started_with_real_fetch",
+        "layer_count_increased_in_KV",
+        "query_surface_returns_signal",
+        "benchmark_status_updates_to_BUILDING"
+      ],
+      "evidenceRequired": [
+        "mine_receipt_with_layersWritten",
+        "kv_layer_refs",
+        "query_example_response",
+        "progress_snapshot"
+      ],
+      "blockers": [
+        "BLK-01: GITHUB_TOKEN secret not set",
+        "BLK-02: /mine logic is gate-stub after token check",
+        "BLK-03: /query route does not exist"
+      ],
+      "regressionRules": [
+        "GITHUB_TOKEN_missing_equals_BLOCKED",
+        "silent_mine_stub_is_status_fiction"
+      ],
+      "failureClasses": [
+        "silent_mine_stub",
+        "wrong_repo_target",
+        "empty_layers",
+        "status_fiction"
+      ],
+      "pheromoneSuccess": "SUCCESSPHEROMONE:VALIDATED:B3",
+      "statusTransitions": ["BLOCKED", "READY", "BUILDING", "COMPLETE", "REGRESSED"]
+    },
+    {
+      "benchmarkId": "B4",
+      "name": "PEDAGOGY_ENGINE_TRUTH",
+      "class": "FUNCTIONAL_SURFACE",
+      "target": "lesson_generation_plus_tiger_score_plus_NET_physics",
+      "route": "/pedagogy/generate",
+      "currentStatus": "BLOCKED",
+      "entryCriteria": [
+        "B3 COMPLETE",
+        "lesson schema present",
+        "TigerScore engine present",
+        "NET_PHYSICS constants locked"
+      ],
+      "exitCriteria": [
+        "lesson_generated_with_valid_schema",
+        "TigerScore_computed_with_correct_weights",
+        "profile_history_updated_in_StudentProfileDO"
+      ],
+      "evidenceRequired": [
+        "lesson_artifact",
+        "schema_validation_output",
+        "score_output_with_tier",
+        "profile_snapshot"
+      ],
+      "blockers": [
+        "BLK-04: /pedagogy/generate route does not exist",
+        "BLK-05: lesson schema not present in code",
+        "upstream: B3 BLOCKED"
+      ],
+      "regressionRules": [
+        "cannot_start_without_B3",
+        "physics_drift_downgrades_complete"
+      ],
+      "failureClasses": [
+        "malformed_lesson",
+        "missing_schema",
+        "score_stub",
+        "physics_drift"
+      ],
+      "pheromoneSuccess": "SUCCESSPHEROMONE:VALIDATED:B4",
+      "statusTransitions": ["NOT_STARTED", "BLOCKED", "BUILDING", "COMPLETE", "REGRESSED"]
+    },
+    {
+      "benchmarkId": "B5",
+      "name": "OBIANA_WEB_APP_TRUTH",
+      "class": "PLATFORM_SURFACE",
+      "target": "auth_chat_missions_operator_admin_stack",
+      "route": "/auth/login",
+      "currentStatus": "W1",
+      "entryCriteria": [
+        "B4 COMPLETE",
+        "API contracts frozen",
+        "role model declared (PUBLIC/CHAT/SOVEREIGN)",
+        "student isolation declared"
+      ],
+      "exitCriteria": [
+        "W1: auth + chat operational",
+        "W2: missions + XP operational",
+        "W3: operator dashboard operational",
+        "W4: admin cockpit operational"
+      ],
+      "evidenceRequired": [
+        "contract_bundle",
+        "route_responses_for_each_wave",
+        "role_enforcement_proof",
+        "student_isolation_proof"
+      ],
+      "blockers": [
+        "BLK-07: /missions not implemented (W2)",
+        "BLK-08: /operator/dashboard not implemented (W3)",
+        "BLK-12: /auth/login is magic-link stub",
+        "BLK-13: API contracts not frozen",
+        "upstream: B4 BLOCKED"
+      ],
+      "regressionRules": [
+        "cannot_start_without_B4",
+        "role_leak_downgrades_complete",
+        "cross_student_data_leak_is_catastrophic"
+      ],
+      "failureClasses": [
+        "contract_drift",
+        "frontend_before_contracts",
+        "role_leak",
+        "cross_student_leak"
+      ],
+      "pheromoneSuccess": "SUCCESSPHEROMONE:VALIDATED:B5",
+      "statusTransitions": ["NOT_STARTED", "BLOCKED", "W1", "W2", "W3", "W4", "COMPLETE", "REGRESSED"]
+    }
+  ]
+}
