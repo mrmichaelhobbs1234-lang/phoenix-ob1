@@ -1,4 +1,4 @@
-name = "phoenix-ob1"
+name = "phoenix-ob1-system"
 main = "src/reincarnate.js"
 compatibility_date = "2024-04-01"
 # nodejs_compat removed — using Web APIs only (crypto, fetch, WebSocket)
@@ -7,16 +7,16 @@ compatibility_date = "2024-04-01"
 WORKER_VERSION = "v136-PRODUCTION-HARDENED"
 DEPLOYED_AT = "2026-03-10T14:00:00Z"
 CHAOS_LEVEL = "OFF"
-CANONICAL_WORKER_URL = "phoenix-ob1.mrmichaelhobbs1234.workers.dev"
-# ALLOWED_ORIGINS = "https://yourdomain.com,https://app.yourdomain.com"
-# BUNDLE_HASH injected by CI: wrangler deploy --var BUNDLE_HASH:$(sha256sum dist)
+CANONICAL_WORKER_URL = "phoenix-ob1-system.mrmichaelhobbs1234.workers.dev"
+ALLOWED_ORIGINS = "https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev"
+# BUNDLE_HASH injected by CI: wrangler deploy --var BUNDLE_HASH:$(sha256sum dist/index.js | awk '{print $1}')
 
 # SECRETS (set via: wrangler secret put <NAME>)
-# SOVEREIGN_KEY   — sovereign auth token
-# CHAT_KEY        — student/operator chat access
-# GITHUB_TOKEN    — B3 knowledge mining (blocks B3 until set)
-# DEEPGRAM_API_KEY — STT voice pipeline
-# SRCSHA256       — bundle integrity (set by CI)
+# SOVEREIGN_KEY     — sovereign auth token
+# CHAT_KEY          — student/operator chat access
+# GITHUB_TOKEN      — B3 knowledge mining (blocks B3 until set)
+# DEEPGRAM_API_KEY  — STT voice pipeline
+# SRCSHA256         — bundle integrity (set by CI after deploy)
 
 [[kv_namespaces]]
 binding = "SOUL_DNA"
