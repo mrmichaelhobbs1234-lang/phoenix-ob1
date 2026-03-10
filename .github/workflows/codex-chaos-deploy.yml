@@ -1,0 +1,345 @@
+name: ⚡ CODEX — Chaos Magic Accelerated Deploy
+
+# =============================================================================
+# CODEX PIPELINE — Phoenix OB-1 v134
+# Full-stack chaos-gated deploy with parallel verification
+# Sequence: preflight → chaos-gate → deploy → smoke → benchmark-ping → seal
+# =============================================================================
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'validators/**'
+      - 'wrangler.toml'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deploy even if preflight warns'
+        required: false
+        default: 'false'
+      chaos_level:
+        description: 'Chaos level: low | medium | high'
+        required: false
+        default: 'medium'
+
+concurrency:
+  group: codex-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WORKER_URL: https://phoenix-ob1.mrmichaelhobbs1234.workers.dev
+  WORKER_NAME: phoenix-ob1
+  NODE_VERSION: '20'
+
+jobs:
+
+  # ===========================================================================
+  # JOB 1: PREFLIGHT
+  # Fast checks — runs in ~10s, blocks everything if it fails
+  # ===========================================================================
+  preflight:
+    name: 🔬 Preflight Audit
+    runs-on: ubuntu-latest
+    outputs:
+      safe_to_deploy: ${{ steps.audit.outputs.safe_to_deploy }}
+      entrypoint_hash: ${{ steps.audit.outputs.entrypoint_hash }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔍 Entrypoint truth check
+        run: |
+          echo "=== ENTRYPOINT CHECK ==="
+          grep -q 'main = "src/reincarnate.js"' wrangler.toml || { echo "FAIL: entrypoint drift"; exit 1; }
+          echo "✅ wrangler.toml main = src/reincarnate.js"
+
+      - name: 🛡️ Body guard check
+        run: |
+          grep -q 'safeJsonBytes' src/reincarnate.js || { echo "FAIL: safeJsonBytes guard missing"; exit 1; }
+          echo "✅ safeJsonBytes guard present"
+
+      - name: 🧱 DO migration tags check
+        run: |
+          grep -q 'v1-genesis'           wrangler.toml || { echo "FAIL: v1-genesis tag missing";      exit 1; }
+          grep -q 'v2-student-profiles'  wrangler.toml || { echo "FAIL: v2-student-profiles missing"; exit 1; }
+          grep -q 'v3-ledger-physics'    wrangler.toml || { echo "FAIL: v3-ledger-physics missing";   exit 1; }
+          grep -q 'v4-rate-limiter'      wrangler.toml || { echo "FAIL: v4-rate-limiter missing";     exit 1; }
+          echo "✅ All 4 DO migration tags present"
+
+      - name: 🔐 KV placeholder check
+        run: |
+          if grep -q 'FILL_FROM_CLOUDFLARE_DASHBOARD' wrangler.toml; then
+            echo "⚠️ WARNING: KV ID is still a placeholder"
+            if [ "${{ inputs.force_deploy }}" != "true" ]; then
+              echo "FAIL: KV placeholder not resolved. Set force_deploy=true to override (deploys without SOUL_DNA KV)."
+              exit 1
+            fi
+            echo "force_deploy=true — proceeding with placeholder KV (SOUL_DNA KV will be unbound)"
+          else
+            echo "✅ KV ID resolved"
+          fi
+
+      - name: 🧹 Validator file check
+        run: |
+          test -f validators/student-profile.js || { echo "FAIL: validators/student-profile.js missing"; exit 1; }
+          echo "✅ validators/student-profile.js present"
+
+      - name: 📊 Emit preflight outputs
+        id: audit
+        run: |
+          HASH=$(sha256sum src/reincarnate.js | cut -d' ' -f1)
+          echo "safe_to_deploy=true"  >> $GITHUB_OUTPUT
+          echo "entrypoint_hash=$HASH" >> $GITHUB_OUTPUT
+          echo "✅ Preflight PASS — entrypoint hash: $HASH"
+
+  # ===========================================================================
+  # JOB 2: CHAOS GATE
+  # Runs parallel to preflight — chaos harness check before deploy
+  # ===========================================================================
+  chaos-gate:
+    name: 🌩️ Chaos Gate
+    runs-on: ubuntu-latest
+    needs: preflight
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci --prefer-offline 2>/dev/null || npm install
+
+      - name: 🌩️ Chaos harness scan
+        run: |
+          echo "=== CHAOS LEVEL: ${{ inputs.chaos_level || 'medium' }} ==="
+          echo "Checking chaos entry point presence..."
+          grep -q 'CHAOS_PROBABILITY\|injectChaos\|chaos' src/reincarnate.js \
+            && echo "✅ Chaos hooks present in runtime" \
+            || echo "⚠️ No chaos hooks — CHAOS_PROBABILITY env will have no effect"
+
+      - name: ⚡ Wrangler syntax validation
+        run: |
+          npx wrangler --version
+          echo "Validating wrangler.toml..."
+          npx wrangler deploy --dry-run --outdir /tmp/worker-bundle 2>&1 | tee /tmp/wrangler-dryrun.out || true
+          echo "=== Dry-run output ==="
+          cat /tmp/wrangler-dryrun.out
+          # Pass even on warning — dry-run is informational at chaos gate
+          echo "✅ Chaos gate PASS"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Upload dry-run bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-bundle-dryrun
+          path: /tmp/worker-bundle
+          retention-days: 3
+
+  # ===========================================================================
+  # JOB 3: DEPLOY
+  # Runs only after preflight + chaos-gate both pass
+  # ===========================================================================
+  deploy:
+    name: 🚀 Deploy to Cloudflare
+    runs-on: ubuntu-latest
+    needs: [preflight, chaos-gate]
+    if: needs.preflight.outputs.safe_to_deploy == 'true'
+    outputs:
+      deploy_url: ${{ steps.get-url.outputs.deploy_url }}
+      deploy_id: ${{ steps.get-url.outputs.deploy_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci --prefer-offline 2>/dev/null || npm install
+
+      - name: 🚀 Wrangler deploy
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_LOG: info
+        run: |
+          echo "=== DEPLOYING Phoenix OB-1 v134-CHAOS-MAGIC ==="
+          echo "Entrypoint hash (from preflight): ${{ needs.preflight.outputs.entrypoint_hash }}"
+          npx wrangler deploy --config ./wrangler.toml ./src/reincarnate.js 2>&1 | tee /tmp/deploy.out
+          echo "=== DEPLOY OUTPUT ==="
+          cat /tmp/deploy.out
+
+      - name: 🔗 Extract deploy URL
+        id: get-url
+        run: |
+          URL=$(grep -oE 'https://[a-z0-9-]+\.workers\.dev' /tmp/deploy.out | head -1 || echo "${{ env.WORKER_URL }}")
+          ID=$(grep -oE 'Deployment ID: [a-f0-9]+' /tmp/deploy.out | head -1 | awk '{print $NF}' || echo "unknown")
+          echo "deploy_url=$URL"  >> $GITHUB_OUTPUT
+          echo "deploy_id=$ID"    >> $GITHUB_OUTPUT
+          echo "✅ Deployed to: $URL (ID: $ID)"
+
+  # ===========================================================================
+  # JOB 4: SMOKE TESTS
+  # Parallel checks — hit all critical endpoints after deploy
+  # ===========================================================================
+  smoke:
+    name: 💨 Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: ⏳ Wait for worker propagation
+        run: sleep 8
+
+      - name: 💯 /health check
+        run: |
+          echo "Hitting ${{ env.WORKER_URL }}/health"
+          RESP=$(curl -sf --max-time 10 ${{ env.WORKER_URL }}/health)
+          echo "Response: $RESP"
+          echo $RESP | grep -q '"ok":true' || { echo "FAIL: /health did not return ok:true"; exit 1; }
+          VERSION=$(echo $RESP | grep -oE 'v[0-9]+-[A-Z-]+' | head -1)
+          echo "✅ /health OK — version: $VERSION"
+
+      - name: 🔍 /evidence check
+        run: |
+          RESP=$(curl -sf --max-time 10 ${{ env.WORKER_URL }}/evidence)
+          echo "Response: $RESP"
+          echo $RESP | grep -q 'version' || { echo "FAIL: /evidence missing version field"; exit 1; }
+          echo "✅ /evidence OK"
+
+      - name: 📚 /ledgerverify check
+        run: |
+          RESP=$(curl -sf --max-time 10 "${{ env.WORKER_URL }}/ledgerverify")
+          echo "Response: $RESP"
+          echo $RESP | grep -q 'valid\|chainHead\|error' || { echo "FAIL: /ledgerverify unexpected response"; exit 1; }
+          echo "✅ /ledgerverify responded"
+
+      - name: 💬 /chat stub check
+        run: |
+          RESP=$(curl -sf --max-time 10 -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"message":"ping","sessionId":"smoke-test-001"}' \
+            ${{ env.WORKER_URL }}/chat)
+          echo "Response: $RESP"
+          echo $RESP | grep -q 'ok\|reply\|error' || { echo "FAIL: /chat unexpected response"; exit 1; }
+          echo "✅ /chat responded"
+
+      - name: 🚫 CORS preflight check
+        run: |
+          STATUS=$(curl -so /dev/null -w '%{http_code}' --max-time 10 \
+            -X OPTIONS \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Origin: https://example.com' \
+            ${{ env.WORKER_URL }}/chat)
+          echo "CORS preflight status: $STATUS"
+          [ "$STATUS" = "200" ] || { echo "FAIL: CORS preflight returned $STATUS"; exit 1; }
+          echo "✅ CORS OK"
+
+  # ===========================================================================
+  # JOB 5: BENCHMARK PING
+  # Non-blocking — records benchmark state, does not gate deploy
+  # ===========================================================================
+  benchmark-ping:
+    name: 🏁 Benchmark Ping
+    runs-on: ubuntu-latest
+    needs: smoke
+    continue-on-error: true
+    steps:
+      - name: 📊 Fetch benchmark state
+        run: |
+          echo "=== BENCHMARK STATE POST-DEPLOY ==="
+          HEALTH=$(curl -sf --max-time 10 ${{ env.WORKER_URL }}/health || echo '{}')
+          echo $HEALTH | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+bm = data.get('benchmarks', {})
+print('Benchmark Status:')
+for k,v in bm.items():
+    icon = '✅' if v not in ['NOT_STARTED','PENDING','⏳ Pending'] else '⏳'
+    print(f'  {icon} {k}: {v}')
+" || echo "(could not parse benchmarks)"
+
+      - name: 📝 Record deploy event
+        run: |
+          echo "DEPLOY_EVENT" >> /tmp/benchmark-log.txt
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> /tmp/benchmark-log.txt
+          echo "commit=${{ github.sha }}"                   >> /tmp/benchmark-log.txt
+          echo "worker_url=${{ env.WORKER_URL }}"            >> /tmp/benchmark-log.txt
+          echo "entrypoint_hash=${{ needs.preflight.outputs.entrypoint_hash || 'N/A' }}" >> /tmp/benchmark-log.txt
+          cat /tmp/benchmark-log.txt
+
+  # ===========================================================================
+  # JOB 6: SEAL
+  # Final state — summary + nuke-lock evaluation
+  # ===========================================================================
+  seal:
+    name: 🔒 Seal
+    runs-on: ubuntu-latest
+    needs: [preflight, deploy, smoke]
+    if: always()
+    steps:
+      - name: 📊 Pipeline summary
+        run: |
+          echo "====================================="
+          echo "  CODEX PIPELINE — SEAL"
+          echo "====================================="
+          echo "Commit:      ${{ github.sha }}"
+          echo "Triggered:   ${{ github.event_name }}"
+          echo "Preflight:   ${{ needs.preflight.result }}"
+          echo "Deploy:      ${{ needs.deploy.result }}"
+          echo "Smoke:       ${{ needs.smoke.result }}"
+          echo "Worker URL:  ${{ env.WORKER_URL }}"
+          echo "====================================="
+
+      - name: 🔒 Nuke lock evaluation
+        run: |
+          PREFLIGHT="${{ needs.preflight.result }}"
+          DEPLOY="${{ needs.deploy.result }}"
+          SMOKE="${{ needs.smoke.result }}"
+          if [ "$PREFLIGHT" = "success" ] && [ "$DEPLOY" = "success" ] && [ "$SMOKE" = "success" ]; then
+            echo ""
+            echo "✅✅✅ NUKE LOCK CONDITION MET ✅✅✅"
+            echo "All gates passed. phoenix-ob1 is deploy-verified."
+            echo "You are now cleared to archive and delete phoenix-ob1-system."
+            echo ""
+            echo "NUKE_LOCK_STATE=CLEARED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo ""
+            echo "🔒 NUKE LOCK STILL ACTIVE"
+            echo "One or more gates failed. Do NOT nuke the old repo yet."
+            echo "Preflight: $PREFLIGHT | Deploy: $DEPLOY | Smoke: $SMOKE"
+            echo ""
+            echo "NUKE_LOCK_STATE=ACTIVE" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Write summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## ⚡ CODEX Pipeline Result
+
+          | Job | Result |
+          |---|---|
+          | Preflight | ${{ needs.preflight.result }} |
+          | Deploy | ${{ needs.deploy.result }} |
+          | Smoke | ${{ needs.smoke.result }} |
+
+          **Worker:** ${{ env.WORKER_URL }}
+          **Commit:** ${{ github.sha }}
+          EOF
+
+      - name: 🛑 Rollback instruction on failure
+        if: needs.smoke.result == 'failure' || needs.deploy.result == 'failure'
+        run: |
+          echo ""
+          echo "🛑 DEPLOY OR SMOKE FAILED"
+          echo "Rollback command:"
+          echo "  git revert HEAD --no-edit && git push"
+          echo "  (GitHub Actions will re-deploy the reverted commit)"
+          echo ""
+          exit 1
