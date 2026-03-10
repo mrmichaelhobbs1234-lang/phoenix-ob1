@@ -7,6 +7,15 @@
 const WORKER_VERSION = 'v134-CHAOS-MAGIC';
 const GENESIS_HASH = '0'.repeat(64);
 
+// CHAOS ENGINE — v134-CHAOS-MAGIC
+// VOIDPHEROMONE: probabilistic fault injection
+function injectChaos(env, label) {
+  const prob = parseFloat(env.CHAOS_PROBABILITY || '0');
+  if (prob > 0 && Math.random() < prob) {
+    throw new Error(`VOIDPHEROMONE: chaos injected at [${label}]`);
+  }
+}
+
 // ============================================================================
 // BODY GUARD: safeJsonBytes
 // ============================================================================
@@ -254,18 +263,16 @@ function checkAuth(request, level, env) {
   return { allowed: false, reason: 'Unknown auth level' };
 }
 
-// ============================================================================
-// RUNTIME SURFACE
-// ============================================================================
-
 export default {
   async fetch(request, env, ctx) {
+    injectChaos(env, 'fetch-entry');
     const url = new URL(request.url);
     
     if (url.pathname === '/health') {
       return new Response(JSON.stringify({
         ok: true,
         version: WORKER_VERSION,
+        chaos_probability: env.CHAOS_PROBABILITY || '0',
         deployedAt: env.DEPLOYED_AT || 'UNKNOWN',
         benchmarks: {
           B0: 'NOT_STARTED',
