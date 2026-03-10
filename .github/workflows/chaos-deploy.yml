@@ -1,5 +1,9 @@
 name: Chaos Deploy
 
+concurrency:
+  group: deploy-phoenix-ob1
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -9,11 +13,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'  # unified — was Node 18
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
@@ -24,7 +28,7 @@ jobs:
       - name: Pre-deploy gate — Body guard audit
         run: |
           echo "Checking for safeJsonBytes usage..."
-          grep -n "safeJsonBytes" src/reincarnate.js || echo "WARNING — safeJsonBytes not found in src/reincarnate.js"
+          grep -n "safeJsonBytes" src/reincarnate.js || (echo "FATAL — safeJsonBytes not found" && exit 1)
 
       - name: Deploy to Cloudflare Workers
         env:
@@ -34,19 +38,22 @@ jobs:
       - name: Post-deploy gate — Health check
         run: |
           sleep 5
-          curl -f https://phoenix-ob1.mrmichaelhobbs1234.workers.dev/health || exit 1
+          curl -f https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev/health || exit 1
 
       - name: Post-deploy gate — Evidence check
         run: |
-          curl -f https://phoenix-ob1.mrmichaelhobbs1234.workers.dev/evidence || exit 1
+          curl -f https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev/evidence || exit 1
 
       - name: Post-deploy gate — Ledger verify check
         run: |
-          curl -f https://phoenix-ob1.mrmichaelhobbs1234.workers.dev/ledgerverify || exit 1
+          curl -f https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev/ledgerverify || exit 1
 
       - name: Rollback on failure
         if: failure()
         run: |
           echo "Post-deploy gates failed — triggering rollback"
-          git revert HEAD --no-edit
+          git config user.email "ci@phoenix-ob1"
+          git config user.name "Phoenix CI"
+          git revert HEAD --no-edit -m "[skip ci] auto-rollback: post-deploy gates failed"
+          git push
           npx wrangler deploy

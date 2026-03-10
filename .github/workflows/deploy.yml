@@ -1,5 +1,9 @@
 name: Deploy to Cloudflare Workers
 
+concurrency:
+  group: deploy-phoenix-ob1
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -25,7 +29,7 @@ jobs:
           ls -la src/reincarnate.js || echo "WARNING: src/reincarnate.js not found"
 
       - name: Install Wrangler
-        run: npm install -g wrangler
+        run: npm install -g wrangler@3
 
       - name: Deploy to Cloudflare Workers
         env:

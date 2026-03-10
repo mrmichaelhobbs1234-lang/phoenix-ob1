@@ -4,8 +4,8 @@ compatibility_date = "2024-04-01"
 # nodejs_compat removed — using Web APIs only (crypto, fetch, WebSocket)
 
 [vars]
-WORKER_VERSION = "v138-CHAOS-ASSAULT"
-DEPLOYED_AT = "2026-03-11T01:17:00Z"
+WORKER_VERSION = "v139-TRUTH-SEALED"
+DEPLOYED_AT = "2026-03-11T01:19:00Z"
 CHAOS_LEVEL = "OFF"
 CANONICAL_WORKER_URL = "phoenix-ob1-system.mrmichaelhobbs1234.workers.dev"
 ALLOWED_ORIGINS = "https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev"
