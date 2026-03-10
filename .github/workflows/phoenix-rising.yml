@@ -1,7 +1,7 @@
 name: "🔥 PHOENIX RISING PROTOCOL — 20-Stage Chaos Magic"
 
 # =============================================================================
-# PHOENIX RISING PROTOCOL — Phoenix OB-1 v134-CHAOS-MAGIC
+# PHOENIX RISING PROTOCOL — Phoenix OB-1 v140-HANDOFF-FINAL
 # 20-stage chaos-gated deploy pipeline
 # The full ritual. Every stage must pass or the Phoenix does not rise.
 # =============================================================================
@@ -30,12 +30,12 @@ on:
         default: 'UNNAMED_RITUAL'
 
 concurrency:
-  group: phoenix-rising-${{ github.ref }}
+  group: deploy-phoenix-ob1
   cancel-in-progress: true
 
 env:
-  WORKER_URL: https://phoenix-ob1.mrmichaelhobbs1234.workers.dev
-  WORKER_NAME: phoenix-ob1
+  WORKER_URL: https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev
+  WORKER_NAME: phoenix-ob1-system
   NODE_VERSION: '20'
   RITUAL: ${{ inputs.ritual_name || 'AUTO' }}
   CHAOS_LEVEL: ${{ inputs.chaos_level || 'SUPER_SAIYAN' }}
@@ -44,7 +44,6 @@ jobs:
 
   # ===========================================================================
   # STAGE 1 — IGNITION
-  # Banner + ritual announcement. The Phoenix awakens.
   # ===========================================================================
   stage-01-ignition:
     name: "🔥 S01 · Ignition"
@@ -59,9 +58,8 @@ jobs:
         run: |
           TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           RID="PHOENIX-$(date -u +%Y%m%d%H%M%S)-$(echo ${{ github.sha }} | cut -c1-7)"
-          echo "ritual_id=$RID"   >> $GITHUB_OUTPUT
-          echo "timestamp=$TS"    >> $GITHUB_OUTPUT
-          echo "" 
+          echo "ritual_id=$RID" >> $GITHUB_OUTPUT
+          echo "timestamp=$TS"  >> $GITHUB_OUTPUT
           echo "========================================================="
           echo "  🔥 PHOENIX RISING PROTOCOL — INITIATED"
           echo "========================================================="
@@ -71,13 +69,11 @@ jobs:
           echo "  Commit:       ${{ github.sha }}"
           echo "  Triggered by: ${{ github.event_name }}"
           echo "  Time:         $TS"
+          echo "  Worker URL:   ${{ env.WORKER_URL }}"
           echo "========================================================="
-          echo ""
-          echo "PHOENIX_RITUAL_ID=$RID" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================================================
   # STAGE 2 — REPO TRUTH AUDIT
-  # Verify repo structure is exactly what we expect
   # ===========================================================================
   stage-02-repo-truth:
     name: "🗂️ S02 · Repo Truth Audit"
@@ -87,21 +83,20 @@ jobs:
       - uses: actions/checkout@v4
       - name: 🗂️ Verify repo structure
         run: |
-          echo "=== REPO STRUCTURE AUDIT ==="
           FAIL=0
-          test -f src/reincarnate.js          || { echo "MISSING: src/reincarnate.js";           FAIL=1; }
-          test -f validators/student-profile.js || { echo "MISSING: validators/student-profile.js"; FAIL=1; }
-          test -f wrangler.toml               || { echo "MISSING: wrangler.toml";                 FAIL=1; }
-          test -f package.json                || { echo "MISSING: package.json";                  FAIL=1; }
-          test -d .github/workflows           || { echo "MISSING: .github/workflows/";            FAIL=1; }
-          test -d docs                        || { echo "MISSING: docs/";                          FAIL=1; }
-          echo "Directory tree:"
+          test -f src/reincarnate.js              || { echo "MISSING: src/reincarnate.js";           FAIL=1; }
+          test -f validators/student-profile.js   || { echo "MISSING: validators/student-profile.js"; FAIL=1; }
+          test -f wrangler.toml                   || { echo "MISSING: wrangler.toml";                 FAIL=1; }
+          test -f package.json                    || { echo "MISSING: package.json";                  FAIL=1; }
+          test -d .github/workflows               || { echo "MISSING: .github/workflows/";            FAIL=1; }
+          test -d docs                            || { echo "MISSING: docs/";                          FAIL=1; }
+          test -f docs/SOUL_DNA_SEED.json         || { echo "MISSING: docs/SOUL_DNA_SEED.json";       FAIL=1; }
+          test -f docs/OPERATOR_RUNBOOK.md        || { echo "MISSING: docs/OPERATOR_RUNBOOK.md";      FAIL=1; }
           find . -not -path './.git/*' | sort
           [ $FAIL -eq 0 ] && echo "✅ Repo structure VERIFIED" || { echo "❌ Repo structure FAILED"; exit 1; }
 
   # ===========================================================================
   # STAGE 3 — ENTRYPOINT TRUTH
-  # wrangler.toml must point exactly to src/reincarnate.js
   # ===========================================================================
   stage-03-entrypoint-truth:
     name: "🎯 S03 · Entrypoint Truth"
@@ -113,15 +108,13 @@ jobs:
         run: |
           grep -q 'main = "src/reincarnate.js"' wrangler.toml \
             && echo "✅ Entrypoint: src/reincarnate.js" \
-            || { echo "❌ FAIL: entrypoint drift detected in wrangler.toml"; exit 1; }
-          echo "Worker name:"
+            || { echo "❌ FAIL: entrypoint drift"; exit 1; }
           grep '^name' wrangler.toml
-          echo "Compatibility:"
           grep 'compatibility' wrangler.toml
+          grep 'WORKER_VERSION' wrangler.toml
 
   # ===========================================================================
   # STAGE 4 — MIGRATION TAG GUARDIAN
-  # DO migration tags are SACRED. Must all be present.
   # ===========================================================================
   stage-04-migration-guardian:
     name: "🧱 S04 · Migration Tag Guardian"
@@ -136,13 +129,12 @@ jobs:
           grep -q 'v2-student-profiles' wrangler.toml || { echo "❌ MISSING: v2-student-profiles"; FAIL=1; }
           grep -q 'v3-ledger-physics'   wrangler.toml || { echo "❌ MISSING: v3-ledger-physics";   FAIL=1; }
           grep -q 'v4-rate-limiter'     wrangler.toml || { echo "❌ MISSING: v4-rate-limiter";     FAIL=1; }
-          echo "DO Bindings present:"
+          grep -q 'v5-memory-do'        wrangler.toml || { echo "❌ MISSING: v5-memory-do";        FAIL=1; }
           grep 'class_name' wrangler.toml
-          [ $FAIL -eq 0 ] && echo "✅ All 4 DO migration tags VERIFIED" || { echo "❌ Migration tags FAILED"; exit 1; }
+          [ $FAIL -eq 0 ] && echo "✅ All 5 DO migration tags VERIFIED" || { echo "❌ Migration tags FAILED"; exit 1; }
 
   # ===========================================================================
   # STAGE 5 — KV TRUTH
-  # SOUL_DNA KV must have real IDs, not placeholders
   # ===========================================================================
   stage-05-kv-truth:
     name: "🗄️ S05 · KV Truth"
@@ -155,7 +147,6 @@ jobs:
           if grep -q 'FILL_FROM_CLOUDFLARE_DASHBOARD' wrangler.toml; then
             echo "❌ FAIL: KV placeholder still present"
             if [ "${{ inputs.force_deploy }}" != "true" ]; then exit 1; fi
-            echo "⚠️ force_deploy=true — proceeding anyway"
           else
             ID=$(grep -A2 'binding = "SOUL_DNA"' wrangler.toml | grep '^id' | cut -d'"' -f2)
             PID=$(grep -A3 'binding = "SOUL_DNA"' wrangler.toml | grep 'preview_id' | cut -d'"' -f2)
@@ -165,7 +156,6 @@ jobs:
 
   # ===========================================================================
   # STAGE 6 — CODE BODY GUARD
-  # Critical safety guards must exist in reincarnate.js
   # ===========================================================================
   stage-06-body-guard:
     name: "🛡️ S06 · Code Body Guard"
@@ -176,18 +166,19 @@ jobs:
       - name: 🛡️ Verify runtime guards
         run: |
           FAIL=0
-          grep -q 'safeJsonBytes'         src/reincarnate.js || { echo "❌ MISSING: safeJsonBytes";         FAIL=1; }
-          grep -q 'validateStudentProfile\|student-profile' src/reincarnate.js || { echo "❌ MISSING: student-profile import"; FAIL=1; }
-          grep -q 'SOVEREIGN_KEY\|sovereign' src/reincarnate.js || { echo "⚠️ WARNING: SOVEREIGN_KEY not referenced"; }
-          grep -q 'LedgerDO\|ledger'      src/reincarnate.js || { echo "❌ MISSING: LedgerDO reference";      FAIL=1; }
-          grep -q 'SessionDO\|session'    src/reincarnate.js || { echo "❌ MISSING: SessionDO reference";     FAIL=1; }
-          echo "File size: $(wc -c < src/reincarnate.js) bytes"
+          grep -q 'safeJsonBytes'                        src/reincarnate.js || { echo "❌ MISSING: safeJsonBytes";          FAIL=1; }
+          grep -q 'student-profile'                      src/reincarnate.js || { echo "❌ MISSING: student-profile import"; FAIL=1; }
+          grep -q 'LedgerDO\|ledger'                     src/reincarnate.js || { echo "❌ MISSING: LedgerDO";               FAIL=1; }
+          grep -q 'SessionDO\|session'                   src/reincarnate.js || { echo "❌ MISSING: SessionDO";              FAIL=1; }
+          grep -q 'CHAOS_EXEMPT_PATHS\|chaosExempt'      src/reincarnate.js || { echo "❌ MISSING: CHAOS_EXEMPT_PATHS";     FAIL=1; }
+          grep -q 'REINCARNATION_SEED\|reincarnate'      src/reincarnate.js || { echo "❌ MISSING: REINCARNATION_SEED";     FAIL=1; }
+          grep -q 'chaos/assault\|chaosAssault'          src/reincarnate.js || { echo "❌ MISSING: chaos/assault";          FAIL=1; }
+          echo "File size:  $(wc -c < src/reincarnate.js) bytes"
           echo "Line count: $(wc -l < src/reincarnate.js) lines"
-          [ $FAIL -eq 0 ] && echo "✅ All body guards VERIFIED" || { echo "❌ Body guard check FAILED"; exit 1; }
+          [ $FAIL -eq 0 ] && echo "✅ All body guards VERIFIED" || { echo "❌ Body guard FAILED"; exit 1; }
 
   # ===========================================================================
   # STAGE 7 — CHAOS HOOKS SCAN
-  # Chaos magic must be wired
   # ===========================================================================
   stage-07-chaos-scan:
     name: "🌩️ S07 · Chaos Hooks Scan"
@@ -198,15 +189,14 @@ jobs:
       - name: 🌩️ Scan chaos hooks
         run: |
           echo "=== CHAOS LEVEL: ${{ env.CHAOS_LEVEL }} ==="
-          grep -q 'CHAOS_PROBABILITY\|injectChaos\|chaos\|VOIDPHEROMONE' src/reincarnate.js \
-            && echo "✅ Chaos hooks PRESENT in runtime" \
-            || echo "⚠️ WARNING: No chaos hooks found — CHAOS_PROBABILITY will have no runtime effect"
+          grep -q 'CHAOS_PROBABILITY\|injectChaos\|VOIDPHEROMONE' src/reincarnate.js \
+            && echo "✅ Chaos hooks PRESENT" \
+            || { echo "❌ FATAL: chaos hooks MISSING"; exit 1; }
           echo "Chaos references:"
-          grep -n 'chaos\|CHAOS\|VOID' src/reincarnate.js || echo "(none found)"
+          grep -n 'CHAOS\|VOID\|chaos' src/reincarnate.js | head -20
 
   # ===========================================================================
   # STAGE 8 — VALIDATOR SCHEMA TRUTH
-  # student-profile.js must exist and export validateStudentProfile
   # ===========================================================================
   stage-08-validator-truth:
     name: "📋 S08 · Validator Schema Truth"
@@ -218,15 +208,14 @@ jobs:
         run: |
           test -f validators/student-profile.js \
             && echo "✅ validators/student-profile.js EXISTS" \
-            || { echo "❌ MISSING: validators/student-profile.js"; exit 1; }
+            || { echo "❌ MISSING"; exit 1; }
           grep -q 'validateStudentProfile\|export\|module.exports' validators/student-profile.js \
-            && echo "✅ Validator exports PRESENT" \
-            || echo "⚠️ WARNING: No export found in student-profile.js"
+            && echo "✅ Validator export PRESENT" \
+            || { echo "❌ No export found"; exit 1; }
           echo "Validator size: $(wc -c < validators/student-profile.js) bytes"
 
   # ===========================================================================
   # STAGE 9 — DEPENDENCY LOCK
-  # package.json must be valid JSON + wrangler must be present
   # ===========================================================================
   stage-09-dep-lock:
     name: "📦 S09 · Dependency Lock"
@@ -237,17 +226,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: 📦 Validate package.json + install
+      - name: 📦 Validate + install
         run: |
           node -e "JSON.parse(require('fs').readFileSync('package.json','utf8')); console.log('✅ package.json valid JSON');"
-          cat package.json | python3 -c "import json,sys; d=json.load(sys.stdin); print('Name:', d.get('name')); print('Version:', d.get('version')); print('Scripts:', list(d.get('scripts',{}).keys()))"
           npm ci --prefer-offline 2>/dev/null || npm install
-          echo "✅ Dependencies installed"
           npx wrangler --version
+          echo "✅ Dependencies locked"
 
   # ===========================================================================
   # STAGE 10 — DRY RUN BUNDLE
-  # Build the worker bundle without deploying — catch compile errors
   # ===========================================================================
   stage-10-dry-run:
     name: "🧪 S10 · Dry Run Bundle"
@@ -262,15 +249,12 @@ jobs:
       - name: 🧪 Wrangler dry-run
         run: |
           npx wrangler deploy --dry-run --outdir /tmp/worker-bundle 2>&1 | tee /tmp/dryrun.out || true
-          echo "=== DRY RUN OUTPUT ==="
           cat /tmp/dryrun.out
-          test -d /tmp/worker-bundle && echo "✅ Bundle directory created" || echo "⚠️ Bundle dir not created (may be OK)"
-          grep -i 'error\|Error\|ERROR' /tmp/dryrun.out && echo "⚠️ Errors in dry-run output" || echo "✅ No fatal errors in dry-run"
+          grep -i 'error\|Error\|ERROR' /tmp/dryrun.out && echo "⚠️ Errors in dry-run" || echo "✅ No fatal errors"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Upload bundle artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: worker-bundle-${{ github.sha }}
           path: /tmp/worker-bundle
@@ -278,7 +262,6 @@ jobs:
 
   # ===========================================================================
   # STAGE 11 — ENTRYPOINT HASH SEAL
-  # Record SHA256 of reincarnate.js — immutable record for this deploy
   # ===========================================================================
   stage-11-hash-seal:
     name: "🔏 S11 · Entrypoint Hash Seal"
@@ -297,7 +280,6 @@ jobs:
           WHASH=$(sha256sum wrangler.toml | cut -d' ' -f1)
           echo "hash=$HASH"   >> $GITHUB_OUTPUT
           echo "vhash=$VHASH" >> $GITHUB_OUTPUT
-          echo "=== HASH SEAL ==="
           echo "reincarnate.js:       $HASH"
           echo "student-profile.js:   $VHASH"
           echo "wrangler.toml:        $WHASH"
@@ -305,7 +287,6 @@ jobs:
 
   # ===========================================================================
   # STAGE 12 — PRE-DEPLOY HEALTH PROBE
-  # Check current live worker state BEFORE overwriting it
   # ===========================================================================
   stage-12-pre-deploy-probe:
     name: "🩺 S12 · Pre-Deploy Health Probe"
@@ -315,17 +296,14 @@ jobs:
     steps:
       - name: 🩺 Probe current live worker
         run: |
-          echo "=== PRE-DEPLOY STATE ==="
           RESP=$(curl -sf --max-time 10 ${{ env.WORKER_URL }}/health || echo '{"ok":false,"status":"unreachable"}')
           echo "Current /health: $RESP"
           VER=$(echo $RESP | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); print(d.get('version','unknown'))" 2>/dev/null || echo 'unknown')
-          echo "Current version: $VER"
+          echo "Current deployed version: $VER"
           echo "PRE_DEPLOY_VERSION=$VER" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Pre-deploy probe complete (non-blocking)"
 
   # ===========================================================================
   # STAGE 13 — DEPLOY 🚀
-  # The actual Cloudflare Workers deploy
   # ===========================================================================
   stage-13-deploy:
     name: "🚀 S13 · Deploy to Cloudflare"
@@ -347,9 +325,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_LOG: info
         run: |
-          echo "=== DEPLOYING Phoenix OB-1 v134-CHAOS-MAGIC ==="
-          echo "Ritual ID:        ${{ needs.stage-01-ignition.outputs.ritual_id }}"
-          echo "Entrypoint hash:  ${{ needs.stage-11-hash-seal.outputs.entrypoint_hash }}"
+          echo "=== DEPLOYING Phoenix OB-1 v140-HANDOFF-FINAL ==="
+          echo "Ritual ID:       ${{ needs.stage-01-ignition.outputs.ritual_id }}"
+          echo "Entrypoint hash: ${{ needs.stage-11-hash-seal.outputs.entrypoint_hash }}"
           npx wrangler deploy --config ./wrangler.toml ./src/reincarnate.js 2>&1 | tee /tmp/deploy.out
           cat /tmp/deploy.out
           URL=$(grep -oE 'https://[a-z0-9-]+\.workers\.dev' /tmp/deploy.out | head -1 || echo "${{ env.WORKER_URL }}")
@@ -360,7 +338,6 @@ jobs:
 
   # ===========================================================================
   # STAGE 14 — PROPAGATION WAIT
-  # Give Cloudflare edge time to propagate before probing
   # ===========================================================================
   stage-14-propagation:
     name: "⏳ S14 · Propagation Wait"
@@ -369,8 +346,8 @@ jobs:
     steps:
       - name: ⏳ Wait for edge propagation
         run: |
-          echo "Waiting 12 seconds for Cloudflare edge propagation..."
-          sleep 12
+          echo "Waiting 15 seconds for Cloudflare edge propagation..."
+          sleep 15
           echo "✅ Propagation window complete"
 
   # ===========================================================================
@@ -401,15 +378,18 @@ jobs:
       - name: 📚 /evidence check
         run: |
           RESP=$(curl -sf --max-time 15 ${{ env.WORKER_URL }}/evidence)
-          echo "Response: $RESP"
-          echo $RESP | grep -q 'version' || { echo "❌ FAIL: /evidence missing version field"; exit 1; }
+          echo $RESP | grep -q 'version' || { echo "❌ FAIL: /evidence missing version"; exit 1; }
           echo "✅ /evidence OK"
       - name: 📊 /ledgerverify check
         run: |
           RESP=$(curl -sf --max-time 15 ${{ env.WORKER_URL }}/ledgerverify)
-          echo "Response: $RESP"
-          echo $RESP | grep -q 'valid\|chainHead\|error\|ledger' || { echo "❌ FAIL: /ledgerverify unexpected response"; exit 1; }
+          echo $RESP | grep -q 'valid\|chainHead\|ledger\|error' || { echo "❌ FAIL: /ledgerverify unexpected"; exit 1; }
           echo "✅ /ledgerverify OK"
+      - name: 🔁 /reincarnate check
+        run: |
+          RESP=$(curl -sf --max-time 15 ${{ env.WORKER_URL }}/reincarnate)
+          echo $RESP | grep -q 'sovereign\|SOVEREIGN\|phoenix\|PHOENIX' || { echo "❌ FAIL: /reincarnate unexpected"; exit 1; }
+          echo "✅ /reincarnate OK"
 
   # ===========================================================================
   # STAGE 17 — SMOKE: CHAT + CORS
@@ -425,8 +405,7 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{"message":"ping","sessionId":"phoenix-smoke-${{ github.run_id }}"}' \
             ${{ env.WORKER_URL }}/chat)
-          echo "Response: $RESP"
-          echo $RESP | grep -q 'ok\|reply\|response\|error' || { echo "❌ FAIL: /chat unexpected response"; exit 1; }
+          echo $RESP | grep -q 'ok\|reply\|response\|error' || { echo "❌ FAIL: /chat unexpected"; exit 1; }
           echo "✅ /chat OK"
       - name: 🚫 CORS preflight check
         run: |
@@ -435,13 +414,11 @@ jobs:
             -H 'Access-Control-Request-Method: POST' \
             -H 'Origin: https://obiana.ai' \
             ${{ env.WORKER_URL }}/chat)
-          echo "CORS status: $STATUS"
           [ "$STATUS" = "200" ] || { echo "❌ FAIL: CORS returned $STATUS"; exit 1; }
           echo "✅ CORS OK"
 
   # ===========================================================================
   # STAGE 18 — CHAOS INJECTION PROBE
-  # Verify chaos probability is active in the live worker
   # ===========================================================================
   stage-18-chaos-probe:
     name: "🌪️ S18 · Chaos Injection Probe"
@@ -451,34 +428,25 @@ jobs:
     steps:
       - name: 🌪️ Probe chaos + benchmark state
         run: |
-          echo "=== CHAOS INJECTION PROBE ==="
           HEALTH=$(curl -sf --max-time 15 ${{ env.WORKER_URL }}/health || echo '{}')
-          echo "Full health response:"
           echo $HEALTH | python3 -c "
 import json, sys
-raw = sys.stdin.read()
 try:
-    d = json.loads(raw)
-    print('ok:          ', d.get('ok'))
-    print('version:     ', d.get('version'))
-    print('chaos_prob:  ', d.get('chaos_probability', 'not exposed'))
+    d = json.loads(sys.stdin.read())
+    print('ok:         ', d.get('ok'))
+    print('version:    ', d.get('version'))
+    print('chaos_prob: ', d.get('chaos_probability','not exposed'))
     bm = d.get('benchmarks', {})
-    if bm:
-        print('benchmarks:')
-        for k,v in bm.items():
-            icon = '✅' if v not in ['NOT_STARTED','PENDING'] else '⏳'
-            print(f'  {icon} {k}: {v}')
-    else:
-        print('benchmarks: (none in health response)')
+    for k,v in bm.items():
+        icon = '✅' if v not in ['NOT_STARTED','PENDING'] else '⏳'
+        print(f'  {icon} {k}: {v}')
 except Exception as e:
     print('parse error:', e)
-    print('raw:', raw[:200])
 "
-          echo "✅ Chaos probe complete (non-blocking)"
+          echo "✅ Chaos probe complete"
 
   # ===========================================================================
   # STAGE 19 — BENCHMARK RECORD
-  # Immutable event log for this deploy
   # ===========================================================================
   stage-19-benchmark-record:
     name: "🏁 S19 · Benchmark Record"
@@ -489,19 +457,18 @@ except Exception as e:
       - name: 🏁 Record deploy event
         run: |
           echo "================================================="
-          echo "  DEPLOY EVENT RECORD"
+          echo "  DEPLOY EVENT RECORD — v140-HANDOFF-FINAL"
           echo "================================================="
-          echo "ritual_id:        ${{ needs.stage-01-ignition.outputs.ritual_id }}"
-          echo "ritual_name:      ${{ env.RITUAL }}"
-          echo "chaos_level:      ${{ env.CHAOS_LEVEL }}"
-          echo "timestamp:        ${{ needs.stage-01-ignition.outputs.timestamp }}"
-          echo "commit:           ${{ github.sha }}"
-          echo "entrypoint_hash:  ${{ needs.stage-11-hash-seal.outputs.entrypoint_hash }}"
-          echo "validator_hash:   ${{ needs.stage-11-hash-seal.outputs.validator_hash }}"
-          echo "deploy_id:        ${{ needs.stage-13-deploy.outputs.deploy_id }}"
-          echo "worker_url:       ${{ env.WORKER_URL }}"
-          echo "triggered_by:     ${{ github.event_name }}"
-          echo "actor:            ${{ github.actor }}"
+          echo "ritual_id:       ${{ needs.stage-01-ignition.outputs.ritual_id }}"
+          echo "ritual_name:     ${{ env.RITUAL }}"
+          echo "chaos_level:     ${{ env.CHAOS_LEVEL }}"
+          echo "timestamp:       ${{ needs.stage-01-ignition.outputs.timestamp }}"
+          echo "commit:          ${{ github.sha }}"
+          echo "entrypoint_hash: ${{ needs.stage-11-hash-seal.outputs.entrypoint_hash }}"
+          echo "validator_hash:  ${{ needs.stage-11-hash-seal.outputs.validator_hash }}"
+          echo "deploy_id:       ${{ needs.stage-13-deploy.outputs.deploy_id }}"
+          echo "worker_url:      ${{ env.WORKER_URL }}"
+          echo "actor:           ${{ github.actor }}"
           echo "================================================="
           cat >> $GITHUB_STEP_SUMMARY << SUMMARY
           ## 🔥 Phoenix Deploy Event
@@ -517,7 +484,6 @@ except Exception as e:
 
   # ===========================================================================
   # STAGE 20 — THE SEAL 🔒
-  # Final verdict. Nuke lock. Phoenix status.
   # ===========================================================================
   stage-20-seal:
     name: "🔒 S20 · The Seal"
@@ -546,60 +512,58 @@ except Exception as e:
     steps:
       - name: 🔒 Final verdict
         run: |
-          echo ""
           echo "========================================================="
-          echo "  🔥 PHOENIX RISING PROTOCOL — SEAL"
+          echo "  🔥 PHOENIX RISING PROTOCOL — FINAL SEAL"
           echo "========================================================="
-          echo "  Ritual:   ${{ needs.stage-01-ignition.outputs.ritual_id }}"
-          echo "  Commit:   ${{ github.sha }}"
-          echo "  Actor:    ${{ github.actor }}"
+          echo "  Ritual:  ${{ needs.stage-01-ignition.outputs.ritual_id }}"
+          echo "  Commit:  ${{ github.sha }}"
+          echo "  Actor:   ${{ github.actor }}"
+          echo "  Worker:  ${{ env.WORKER_URL }}"
           echo ""
           echo "  Stage Results:"
-          echo "  S01 Ignition:           ${{ needs.stage-01-ignition.result }}"
-          echo "  S02 Repo Truth:         ${{ needs.stage-02-repo-truth.result }}"
-          echo "  S03 Entrypoint Truth:   ${{ needs.stage-03-entrypoint-truth.result }}"
-          echo "  S04 Migration Guard:    ${{ needs.stage-04-migration-guardian.result }}"
-          echo "  S05 KV Truth:           ${{ needs.stage-05-kv-truth.result }}"
-          echo "  S06 Body Guard:         ${{ needs.stage-06-body-guard.result }}"
-          echo "  S07 Chaos Scan:         ${{ needs.stage-07-chaos-scan.result }}"
-          echo "  S08 Validator Truth:    ${{ needs.stage-08-validator-truth.result }}"
-          echo "  S09 Dep Lock:           ${{ needs.stage-09-dep-lock.result }}"
-          echo "  S10 Dry Run:            ${{ needs.stage-10-dry-run.result }}"
-          echo "  S11 Hash Seal:          ${{ needs.stage-11-hash-seal.result }}"
-          echo "  S12 Pre-Deploy Probe:   ${{ needs.stage-12-pre-deploy-probe.result }}"
-          echo "  S13 Deploy:             ${{ needs.stage-13-deploy.result }}"
-          echo "  S14 Propagation:        ${{ needs.stage-14-propagation.result }}"
-          echo "  S15 Smoke Health:       ${{ needs.stage-15-smoke-health.result }}"
-          echo "  S16 Smoke Ledger:       ${{ needs.stage-16-smoke-ledger.result }}"
-          echo "  S17 Smoke Chat:         ${{ needs.stage-17-smoke-chat.result }}"
-          echo "  S18 Chaos Probe:        ${{ needs.stage-18-chaos-probe.result }}"
-          echo "  S19 Benchmark Record:   ${{ needs.stage-19-benchmark-record.result }}"
+          echo "  S01 Ignition:          ${{ needs.stage-01-ignition.result }}"
+          echo "  S02 Repo Truth:        ${{ needs.stage-02-repo-truth.result }}"
+          echo "  S03 Entrypoint Truth:  ${{ needs.stage-03-entrypoint-truth.result }}"
+          echo "  S04 Migration Guard:   ${{ needs.stage-04-migration-guardian.result }}"
+          echo "  S05 KV Truth:          ${{ needs.stage-05-kv-truth.result }}"
+          echo "  S06 Body Guard:        ${{ needs.stage-06-body-guard.result }}"
+          echo "  S07 Chaos Scan:        ${{ needs.stage-07-chaos-scan.result }}"
+          echo "  S08 Validator Truth:   ${{ needs.stage-08-validator-truth.result }}"
+          echo "  S09 Dep Lock:          ${{ needs.stage-09-dep-lock.result }}"
+          echo "  S10 Dry Run:           ${{ needs.stage-10-dry-run.result }}"
+          echo "  S11 Hash Seal:         ${{ needs.stage-11-hash-seal.result }}"
+          echo "  S12 Pre-Deploy Probe:  ${{ needs.stage-12-pre-deploy-probe.result }}"
+          echo "  S13 Deploy:            ${{ needs.stage-13-deploy.result }}"
+          echo "  S14 Propagation:       ${{ needs.stage-14-propagation.result }}"
+          echo "  S15 Smoke Health:      ${{ needs.stage-15-smoke-health.result }}"
+          echo "  S16 Smoke Ledger:      ${{ needs.stage-16-smoke-ledger.result }}"
+          echo "  S17 Smoke Chat:        ${{ needs.stage-17-smoke-chat.result }}"
+          echo "  S18 Chaos Probe:       ${{ needs.stage-18-chaos-probe.result }}"
+          echo "  S19 Benchmark Record:  ${{ needs.stage-19-benchmark-record.result }}"
           echo ""
-
           CRITICAL_PASS=true
-          [ "${{ needs.stage-02-repo-truth.result }}"           != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-03-entrypoint-truth.result }}"     != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-04-migration-guardian.result }}"   != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-06-body-guard.result }}"           != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-13-deploy.result }}"               != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-15-smoke-health.result }}"         != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-16-smoke-ledger.result }}"         != "success" ] && CRITICAL_PASS=false
-          [ "${{ needs.stage-17-smoke-chat.result }}"           != "success" ] && CRITICAL_PASS=false
-
+          [ "${{ needs.stage-02-repo-truth.result }}"         != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-03-entrypoint-truth.result }}"   != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-04-migration-guardian.result }}" != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-06-body-guard.result }}"         != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-13-deploy.result }}"             != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-15-smoke-health.result }}"       != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-16-smoke-ledger.result }}"       != "success" ] && CRITICAL_PASS=false
+          [ "${{ needs.stage-17-smoke-chat.result }}"         != "success" ] && CRITICAL_PASS=false
           if [ "$CRITICAL_PASS" = "true" ]; then
             echo "  ✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅"
             echo ""
             echo "  🔥 PHOENIX HAS RISEN 🔥"
             echo ""
-            echo "  All 20 stages complete. Worker is live."
+            echo "  All 20 stages complete. Worker is live and verified."
             echo "  ${{ env.WORKER_URL }}/health"
             echo ""
             echo "  PHOENIX_STATE=RISEN" >> $GITHUB_STEP_SUMMARY
             echo "  ✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅✅"
           else
             echo "  🔒 PHOENIX STATE: GROUNDED"
-            echo "  One or more critical stages failed."
-            echo "  Rollback: git revert HEAD --no-edit && git push"
+            echo "  Critical stage failed. Do NOT nuke old repo."
+            echo "  Rollback: git revert HEAD --no-edit -m '[skip ci] rollback' && git push"
             echo "  PHOENIX_STATE=GROUNDED" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
