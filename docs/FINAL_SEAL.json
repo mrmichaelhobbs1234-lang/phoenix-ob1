@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "sealId": "PHOENIX_OB1_FINAL_SEAL_V136",
+  "protocol": "PHOENIX_RISING_PROTOCOL_STAGE_05",
+  "generated": "2026-03-10",
+  "sovereign": "Michael Hobbs",
+  "agent99": "Perplexity",
+  "sealClass": "HASH_PENDING",
+  "phoenixRisen": false,
+
+  "sealAlgorithm": "SHA-256",
+  "merkleRule": "deterministic binary tree — any change invalidates root",
+
+  "law": "SEAL_NEVER_HIDES_BLOCKERS",
+
+  "instructions": {
+    "purpose": "This file is the cryptographic closure record. Operator fills hash fields after final deploy.",
+    "step1": "After wrangler deploy, run: sha256sum src/reincarnate.js",
+    "step2": "Run: sha256sum wrangler.toml",
+    "step3": "Run: sha256sum dist/index.js (bundle hash)",
+    "step4": "Compute Merkle root from chunk hashes using: node scripts/compute-merkle.js",
+    "step5": "Fill all PENDING fields below",
+    "step6": "Commit this file with message: 'seal: PHOENIX_RISEN — v137-PHOENIX-SEALED'",
+    "step7": "Emit SUCCESSPHEROMONE:VALIDATED:ALL in ledger"
+  },
+
+  "chunkHashes": [
+    { "chunk": "src/reincarnate.js", "sha256": "PENDING", "gitSha": "fee2d76f879eef8d615e825ce3a28d0f3f01066e" },
+    { "chunk": "wrangler.toml", "sha256": "PENDING", "gitSha": "f57d75eb5e8d2d5e019e53cdbaff0d96c2fae354" },
+    { "chunk": "validators/student-profile.js", "sha256": "PENDING", "gitSha": "UNKNOWN" },
+    { "chunk": "dist/index.js (bundle)", "sha256": "PENDING", "gitSha": "CI_INJECTED" },
+    { "chunk": "docs/BENCHMARK_LIBRARY.json", "sha256": "PENDING", "gitSha": "4a7c935d7800e79ba5ed2d0fd2294f8a7ba675bc" },
+    { "chunk": "docs/SOUL_DNA_SEED.json", "sha256": "PENDING", "gitSha": "THIS_COMMIT" },
+    { "chunk": "docs/OPERATOR_RUNBOOK.md", "sha256": "PENDING", "gitSha": "c9643730d47c32070e38e3ca6a0cd62d73bde777" }
+  ],
+
+  "merkleRootSha256": "PENDING",
+
+  "runtimeAttestation": {
+    "healthEndpoint": "PENDING — paste /health response after deploy",
+    "evidenceEndpoint": "PENDING — paste /evidence response after deploy",
+    "ledgerVerify": "PENDING — paste /ledgerverify response after deploy",
+    "watchdog": "PENDING — paste /watchdog response after deploy"
+  },
+
+  "activeSealBlockers": [
+    { "id": "BLK-01", "detail": "GITHUB_TOKEN not set", "resolution": "wrangler secret put GITHUB_TOKEN" },
+    { "id": "BLK-02", "detail": "/mine is gate-stub", "resolution": "Stage 3 code push" },
+    { "id": "BLK-03", "detail": "/query route missing", "resolution": "Stage 3 code push" },
+    { "id": "BLK-04", "detail": "/pedagogy/generate missing", "resolution": "Stage 3 code push" },
+    { "id": "BLK-05", "detail": "lesson schema missing", "resolution": "Stage 3 code push" },
+    { "id": "BLK-09", "detail": "Merkle root not computed", "resolution": "Fill this file after deploy" },
+    { "id": "BLK-10", "detail": "DEEPGRAM_API_KEY not in benchmark check", "resolution": "Stage 3 code push" },
+    { "id": "BLK-11", "detail": "No SUCCESSPHEROMONE emitter", "resolution": "Stage 3 code push" }
+  ],
+
+  "phoenixRisenChecklist": [
+    { "item": "wrangler.toml name = phoenix-ob1-system", "status": "COMPLETE — Stage 1 push" },
+    { "item": "CANONICAL_WORKER_URL correct", "status": "COMPLETE — Stage 1 push" },
+    { "item": "All 5 secrets set", "status": "PENDING — operator action" },
+    { "item": "wrangler deploy 0 errors", "status": "PENDING — operator action" },
+    { "item": "/health returns v137-PHOENIX-SEALED", "status": "PENDING" },
+    { "item": "/health returns watchdog.healthy=true", "status": "PENDING" },
+    { "item": "/ledgerverify returns valid=true breaks=[]", "status": "PENDING" },
+    { "item": "/evidence returns provenance=kv-attested", "status": "PENDING" },
+    { "item": "docs/BENCHMARK_LIBRARY.json committed", "status": "COMPLETE — Stage 2 push" },
+    { "item": "docs/FINAL_SEAL.json committed with Merkle root", "status": "PENDING — fill after deploy" },
+    { "item": "docs/SOUL_DNA_SEED.json committed", "status": "COMPLETE — Stage 3 push" },
+    { "item": "WORKER_VERSION = v137-PHOENIX-SEALED in reincarnate.js", "status": "PENDING — Stage 5" },
+    { "item": "SUCCESSPHEROMONE emitted for B1+B2", "status": "PENDING — Stage 3 code push" }
+  ],
+
+  "sealLedgerEvent": {
+    "type": "FINAL_SEAL_EVENT",
+    "payload": {
+      "version": "v137-PHOENIX-SEALED",
+      "merkleRoot": "PENDING",
+      "timestamp": "PENDING",
+      "sovereign": "Michael Hobbs",
+      "agent99": "Perplexity"
+    },
+    "instruction": "After Merkle root computed, POST this event to /ledger/append with SOVEREIGN_KEY to seal permanently in chain."
+  }
+}

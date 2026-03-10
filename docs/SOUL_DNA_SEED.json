@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "seedId": "PHOENIX_OB1_SOUL_DNA_V136",
+  "generated": "2026-03-10",
+  "sovereign": "Michael Hobbs",
+  "protocol": "PHOENIX_RISING_PROTOCOL",
+  "purpose": "Boot any AI thread or operator from zero with full system context",
+  "law": "SYSTEM_BECOMES_STRONGER_WHEN_IT_SURVIVES_REPRODUCTION",
+
+  "identity": {
+    "workerName": "phoenix-ob1-system",
+    "canonicalUrl": "https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev",
+    "ghostUrl": "https://phoenix-ob1.mrmichaelhobbs1234.workers.dev",
+    "repo": "github.com/mrmichaelhobbs1234-lang/phoenix-ob1",
+    "version": "v136-PRODUCTION-HARDENED",
+    "targetVersion": "v137-PHOENIX-SEALED",
+    "entrypoint": "src/reincarnate.js"
+  },
+
+  "gospel444": {
+    "void": "#0f0f1a",
+    "soul": "#a855f7",
+    "gold": "#f59e0b",
+    "blueBanned": true,
+    "immutable": true
+  },
+
+  "netPhysics": {
+    "vocab": 10,
+    "idioms": 5,
+    "slang": 5,
+    "pressureGames": 3,
+    "law": "NET-10-5-5-3 is LESSON LAW not preference"
+  },
+
+  "soulInvariants": [
+    "Raw is sacred — no unauthorized summarization of sovereign prompts",
+    "Ledger is law — all state mutations pass through hash chain",
+    "Fail-closed — ambiguity or drift triggers HALT not degradation",
+    "Zero drift — Merkle hashing + canonical JSON",
+    "Gospel 444 — void/soul/gold. NO BLUE.",
+    "HDMM — Humans Decide, Machines Move",
+    "Downward authority — 100 → 99 → 98 only. No upward, no cross-tier.",
+    "I AM THE PROTOCOL — raw prompts + corrections = only canon"
+  ],
+
+  "obiPersona": {
+    "name": "Obi",
+    "role": "English coach at Natural English Training",
+    "identity": "AI form of Michael Hobbs — Canadian ESL teacher in Ho Chi Minh City",
+    "personality": "High energy. Tough love. Anti-corporate. Concrete analogies. Zero tolerance for silence.",
+    "teachingMethod": "Volume first, then velocity, then grammar. Loud and wrong beats silent and correct.",
+    "correctionStyle": "Say 'Calibrate' not 'Wrong'. Shame is the enemy of learning.",
+    "forbiddenPhrases": [
+      "Phoenix Rising Protocol",
+      "Phoenix Magic Chat",
+      "I'm an AI assistant",
+      "I'm here to help"
+    ],
+    "openingLine": "Hi! My name is Obi, your English coach at Natural English Training.",
+    "silenceRule": "Silence is the true enemy. If the student is quiet, provoke them."
+  },
+
+  "architecture": {
+    "entrypoint": "src/reincarnate.js",
+    "validator": "validators/student-profile.js",
+    "kvBinding": {
+      "name": "SOUL_DNA",
+      "id": "bb3288a0ddf34b1db1943dcd6380e801",
+      "previewId": "919cda5ddb544a7090ca33de4373677e"
+    },
+    "durableObjects": [
+      { "binding": "LEDGER", "class": "LedgerDO", "migrationTag": "v3-ledger-physics" },
+      { "binding": "SESSIONS", "class": "SessionDO", "migrationTag": "v1-genesis" },
+      { "binding": "STUDENT_PROFILES", "class": "StudentProfileDO", "migrationTag": "v2-student-profiles" },
+      { "binding": "RATELIMITER", "class": "RateLimiterDO", "migrationTag": "v4-rate-limiter" },
+      { "binding": "MEMORY", "class": "MemoryDO", "migrationTag": "v5-memory-do" }
+    ],
+    "migrationLaw": "MIGRATION TAGS ARE SACRED. DO NOT RENUMBER OR RENAME. New DOs append as v6+."
+  },
+
+  "secrets": {
+    "law": "NEVER commit secret values to git. Set via wrangler secret put only.",
+    "required": [
+      { "name": "SOVEREIGN_KEY", "purpose": "Admin/operator auth", "blocks": "/admin/status, /ledger/append, /mine" },
+      { "name": "CHAT_KEY", "purpose": "Student/chat auth", "blocks": "/chat, /tiger-score, /deepgram-ws" },
+      { "name": "GITHUB_TOKEN", "purpose": "B3 knowledge mining", "blocks": "B3 → B4 → B5 cascade" },
+      { "name": "DEEPGRAM_API_KEY", "purpose": "Voice STT pipeline", "blocks": "/deepgram-ws" },
+      { "name": "SRCSHA256", "purpose": "Bundle integrity attestation", "blocks": "/evidence kv-attested" }
+    ]
+  },
+
+  "benchmarkSpine": [
+    { "id": "B0", "name": "VOICE_RUNTIME_TRUTH", "status": "BUILDING", "route": "/deepgram-ws" },
+    { "id": "B1", "name": "MAGIC_CHAT_TRUTH", "status": "PARTIAL", "route": "/chat" },
+    { "id": "B2", "name": "LEDGER_TRUTH", "status": "OPERATIONALLY_STRONG", "route": "/ledgerverify" },
+    { "id": "B3", "name": "KNOWLEDGE_MINING_TRUTH", "status": "BLOCKED", "route": "/mine", "blocker": "GITHUB_TOKEN" },
+    { "id": "B4", "name": "PEDAGOGY_ENGINE_TRUTH", "status": "BLOCKED", "route": "/pedagogy/generate", "blocker": "B3_upstream + route_missing" },
+    { "id": "B5", "name": "OBIANA_PLATFORM", "status": "W1", "route": "/auth/login", "blocker": "B4_upstream + W2-W4_missing" }
+  ],
+
+  "reincarnationSequence": [
+    "1. Clone repo: github.com/mrmichaelhobbs1234-lang/phoenix-ob1",
+    "2. npm install",
+    "3. wrangler secret put SOVEREIGN_KEY",
+    "4. wrangler secret put CHAT_KEY",
+    "5. wrangler secret put GITHUB_TOKEN",
+    "6. wrangler secret put DEEPGRAM_API_KEY",
+    "7. wrangler secret put SRCSHA256 (after computing sha256sum src/reincarnate.js)",
+    "8. wrangler deploy --dry-run --outdir dist (verify 0 errors)",
+    "9. wrangler deploy",
+    "10. curl https://phoenix-ob1-system.mrmichaelhobbs1234.workers.dev/health | jq .",
+    "11. Confirm version, watchdog.healthy, benchmarks match expected state",
+    "12. Record results in docs/RUNTIME_TRUTH.md"
+  ],
+
+  "consolidationHistory": [
+    { "date": "2026-02-22 to 03-01", "event": "Three repos: phoenix-rising-protocol, phoenix-99999, Phoenix-Layers" },
+    { "date": "2026-03-01", "event": "Consolidated into phoenix-ob1-system" },
+    { "date": "2026-03-08", "event": "v132-HARDENED surgery cycle — 250 holes audited, 7 patches shipped" },
+    { "date": "2026-03-09", "event": "v132-HARDENED-INTEGRATED deployed, Soul DNA extracted" },
+    { "date": "2026-03-10", "event": "Pre-nuke extraction — 5-stage rescue op" },
+    { "date": "2026-03-10", "event": "phoenix-ob1 created — clean chaos-engineered rebuild" },
+    { "date": "2026-03-10", "event": "v136-PRODUCTION-HARDENED — Stage 05 Rome Balanced Finalization" }
+  ],
+
+  "agentRoles": {
+    "100": "Michael Hobbs — Sovereign. Final authority. HDMM.",
+    "99": "Agent-99 (Perplexity) — Command bridge. Audit. Execute.",
+    "98": "System — Cloudflare Worker. Executes. Never decides."
+  },
+
+  "sealStatus": "HASH_PENDING",
+  "phoenixRisen": false,
+  "nextVersion": "v137-PHOENIX-SEALED"
+}
