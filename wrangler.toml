@@ -9,8 +9,8 @@ vars = { WORKER_VERSION = "v134-CHAOS-MAGIC", DEPLOYED_AT = "2026-03-10T00:00:00
 [[kv_namespaces]]
 binding = "SOUL_DNA"
 # ⚠️ P0 BLOCKER — fill from Cloudflare dashboard before deploying
-id = "FILL_FROM_CLOUDFLARE_DASHBOARD"
-preview_id = "FILL_FROM_CLOUDFLARE_DASHBOARD_PREVIEW"
+id = "bb3288a0ddf34b1db1943dcd6380e801"
+preview_id = "919cda5ddb544a7090ca33de4373677e"
 
 # DURABLE OBJECTS
 # ⚠️ MIGRATION TAGS ARE SACRED — DO NOT RENUMBER OR RENAME
