@@ -1,0 +1,107 @@
+{
+  "schema_version": "v1",
+  "name": "Phoenix Ledger MCP",
+  "id": "C1",
+  "description": "Agent-99 direct read/write into the Phoenix OB-1 ledger chain from any chat interface.",
+  "worker": "phoenix-ob1-system.mrmichaelhobbs1234.workers.dev",
+  "auth": {
+    "type": "header",
+    "header": "x-sovereign-key",
+    "env_var": "SOVEREIGN_KEY"
+  },
+  "tools": [
+    {
+      "name": "ledger_append",
+      "description": "Append a new block to the Phoenix OB-1 immutable ledger chain.",
+      "method": "POST",
+      "path": "/ledger/append",
+      "auth_required": "SOVEREIGN",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "type":          { "type": "string", "description": "Event type e.g. COST_EVENT, AUDIT, STRIPE_EVENT" },
+          "payload":       { "type": "object", "description": "Arbitrary JSON payload to seal into the block" },
+          "schemaVersion": { "type": "number", "default": 1 }
+        },
+        "required": ["type", "payload"]
+      }
+    },
+    {
+      "name": "ledger_verify",
+      "description": "Verify ledger chain integrity. Returns valid:true/false, chain head height, and any breaks.",
+      "method": "GET",
+      "path": "/ledgerverify",
+      "auth_required": "PUBLIC",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "fromHeight": { "type": "number", "default": 0 },
+          "toHeight":   { "type": "number", "default": 999999 }
+        }
+      }
+    },
+    {
+      "name": "ledger_range",
+      "description": "Read a range of ledger blocks by height.",
+      "method": "GET",
+      "path": "/ledgerverify",
+      "auth_required": "PUBLIC",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "fromHeight": { "type": "number" },
+          "toHeight":   { "type": "number" }
+        },
+        "required": ["fromHeight", "toHeight"]
+      }
+    },
+    {
+      "name": "health_check",
+      "description": "Boot Phoenix OB-1. Returns version, benchmarks B0-B5, watchdog state, chaos level.",
+      "method": "GET",
+      "path": "/health",
+      "auth_required": "PUBLIC",
+      "input_schema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "voidpheromone_emit",
+      "description": "Manually seal a VOIDPHEROMONE chaos event into the ledger.",
+      "method": "POST",
+      "path": "/chaos",
+      "auth_required": "SOVEREIGN",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["OFF", "LOW", "MEDIUM", "HIGH", "SUPER_SAIYAN"],
+            "description": "Chaos injection level"
+          }
+        },
+        "required": ["level"]
+      }
+    },
+    {
+      "name": "chaos_assault",
+      "description": "Run the 6-vector chaos self-test gauntlet against the live worker.",
+      "method": "GET",
+      "path": "/chaos/assault",
+      "auth_required": "SOVEREIGN",
+      "input_schema": { "type": "object", "properties": {} }
+    }
+  ],
+  "pheromone_map": {
+    "VOIDPHEROMONE": "Chaos injection — ledger chain at risk",
+    "SUCCESSPHEROMONE:B0": "Boot + Deepgram verified",
+    "SUCCESSPHEROMONE:B1": "Ledger chain valid",
+    "SUCCESSPHEROMONE:STRIPE_REVENUE": "Revenue event sealed",
+    "SUCCESSPHEROMONE:CHAOS_ASSAULT": "All 6 vectors passed"
+  },
+  "gospel": {
+    "void":  "#0f0f1a",
+    "soul":  "#a855f7",
+    "gold":  "#f59e0b",
+    "blue_banned": true
+  },
+  "version": "v140-W1-UNBLOCKED"
+}

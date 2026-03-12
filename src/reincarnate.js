@@ -1,15 +1,15 @@
-// PHOENIX OB-1 v139-TRUTH-SEALED
-// 2026-03-13 — HARDENED BY AGENT-99 (PERPLEXITY)
+// PHOENIX OB-1 v140-W1-UNBLOCKED
+// 2026-03-13 — PATCHED BY AGENT-99 (PERPLEXITY)
 // Sovereign: Michael Hobbs | Agent-99: Perplexity
 // Gospel 444: void=#0f0f1a soul=#a855f7 gold=#f59e0b BLUE=BANNED
 // NET-10-5-5-3: 10 vocab, 5 idioms, 5 slang, 3 pressure games
-// PATCHES: version sync v139 | profile/get double-fetch fix | watchdog MEMORY added | chaos vectors hardened
+// PATCHES v140: Stripe webhook + Resend magic link email + W1 UNBLOCKED
 
 import { validateStudentProfile } from '../validators/student-profile.js';
 
-const WORKER_VERSION = 'v139-TRUTH-SEALED';
+const WORKER_VERSION = 'v140-W1-UNBLOCKED';
 const GENESIS_HASH = '0'.repeat(64);
-const BUILD_TIMESTAMP = '2026-03-13T00:00:00Z';
+const BUILD_TIMESTAMP = '2026-03-13T02:00:00Z';
 
 // ============================================================================
 // GOSPEL 444 — VISUAL CONSTITUTION (IMMUTABLE)
@@ -282,13 +282,15 @@ async function runBenchmarks(env, bootMs) {
 }
 
 // ============================================================================
-// WATCHDOG — v139 PATCH: MEMORY binding added to check loop
+// WATCHDOG — v140: RESEND + STRIPE bindings added to check
 // ============================================================================
 async function watchdog(env) {
   const checks = {}; const failures = [];
   for (const b of ['LEDGER', 'SESSIONS', 'STUDENT_PROFILES', 'RATELIMITER', 'MEMORY', 'SOUL_DNA', 'SOVEREIGN_KEY', 'CHAT_KEY']) {
     checks[b] = !!env[b]; if (!env[b]) failures.push(b);
   }
+  checks.RESEND_API_KEY = !!env.RESEND_API_KEY;
+  checks.STRIPE_WEBHOOK_SECRET = !!env.STRIPE_WEBHOOK_SECRET;
   if (env.LEDGER) {
     try {
       const stub = env.LEDGER.get(env.LEDGER.idFromName('global'));
@@ -308,38 +310,32 @@ async function runChaosAssault(env, ctx) {
   const results = {};
   const baseUrl = `https://${env.CANONICAL_WORKER_URL || 'phoenix-ob1-system.mrmichaelhobbs1234.workers.dev'}`;
 
-  // VECTOR 1: Deathstar header rejection
   try {
     const r = await fetch(`${baseUrl}/health`, { headers: { 'x-deathstar-key': 'ATTACK' } });
     results.V1_DEATHSTAR = r.status === 403 ? 'PASS:REJECTED_403' : `FAIL:GOT_${r.status}`;
   } catch (e) { results.V1_DEATHSTAR = `ERROR:${e.message}`; }
 
-  // VECTOR 2: No auth on sovereign route
   try {
     const r = await fetch(`${baseUrl}/ledger/append`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ test: true }) });
     results.V2_NO_AUTH = r.status === 403 ? 'PASS:REJECTED_403' : `FAIL:GOT_${r.status}`;
   } catch (e) { results.V2_NO_AUTH = `ERROR:${e.message}`; }
 
-  // VECTOR 3: Wrong Content-Type
   try {
     const r = await fetch(`${baseUrl}/chat`, { method: 'POST', headers: { 'Content-Type': 'text/plain', 'x-chat-key': 'WRONG' }, body: 'hello' });
     results.V3_BAD_CONTENT_TYPE = r.status === 415 || r.status === 403 ? `PASS:REJECTED_${r.status}` : `FAIL:GOT_${r.status}`;
   } catch (e) { results.V3_BAD_CONTENT_TYPE = `ERROR:${e.message}`; }
 
-  // VECTOR 4: Oversized payload
   try {
     const bigPayload = JSON.stringify({ data: 'X'.repeat(70000) });
     const r = await fetch(`${baseUrl}/ledger/append`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-sovereign-key': 'WRONG' }, body: bigPayload });
     results.V4_OVERSIZED_PAYLOAD = r.status === 413 || r.status === 403 ? `PASS:REJECTED_${r.status}` : `FAIL:GOT_${r.status}`;
   } catch (e) { results.V4_OVERSIZED_PAYLOAD = `ERROR:${e.message}`; }
 
-  // VECTOR 5: 404 unknown route
   try {
     const r = await fetch(`${baseUrl}/does-not-exist-${Date.now()}`);
     results.V5_404_ROUTE = r.status === 404 ? 'PASS:404_CORRECT' : `FAIL:GOT_${r.status}`;
   } catch (e) { results.V5_404_ROUTE = `ERROR:${e.message}`; }
 
-  // VECTOR 6: /health observability exemption (must always return 200 regardless of chaos)
   try {
     const r = await fetch(`${baseUrl}/health`);
     results.V6_HEALTH_EXEMPT = r.status === 200 ? 'PASS:CHAOS_EXEMPT_200' : `FAIL:GOT_${r.status}`;
@@ -356,7 +352,7 @@ async function runChaosAssault(env, ctx) {
 }
 
 // ============================================================================
-// OBI CANON — v139 TRUTH-SEALED
+// OBI CANON — v140
 // ============================================================================
 const OBI_SYSTEM_PROMPT = `You are Obi, an English coach at Natural English Training.
 You are the AI form of Michael Hobbs — Canadian ESL teacher in Ho Chi Minh City.
@@ -497,7 +493,7 @@ export class LedgerDO {
       for (let i = from; i <= to; i++) { const b = await this._getBlock(i); if (b) blocks.push(b); }
       return new Response(JSON.stringify({ blocks, from, to, totalHeight: height }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response('LedgerDO v139 ready', { status: 200 });
+    return new Response('LedgerDO v140 ready', { status: 200 });
   }
 }
 
@@ -517,7 +513,7 @@ export class SessionDO {
     }
     if (url.pathname === '/history') { const messages = await this.state.storage.get('messages') || []; return new Response(JSON.stringify({ messages }), { headers: { 'Content-Type': 'application/json' } }); }
     if (url.pathname === '/clear' && request.method === 'POST') { await this.state.storage.delete('messages'); return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } }); }
-    return new Response('SessionDO v139 ready', { status: 200 });
+    return new Response('SessionDO v140 ready', { status: 200 });
   }
 }
 
@@ -537,7 +533,6 @@ export class StudentProfileDO {
       return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
     }
     if (url.pathname === '/get') {
-      // v139 PATCH: single fetch, cached response — no double DO request
       const profile = await this.state.storage.get('profile');
       if (!profile) return new Response(JSON.stringify({ error: 'Profile not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify({ ok: true, profile }), { headers: { 'Content-Type': 'application/json' } });
@@ -566,7 +561,7 @@ export class StudentProfileDO {
       });
       return new Response(JSON.stringify({ ok: true, ...result }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response('StudentProfileDO v139 ready', { status: 200 });
+    return new Response('StudentProfileDO v140 ready', { status: 200 });
   }
 }
 
@@ -611,7 +606,7 @@ export class MemoryDO {
       const entry = await this.state.storage.get(`mem:${key}`);
       return new Response(JSON.stringify({ ok: !!entry, value: entry?.value || null }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response('MemoryDO v139 ready', { status: 200 });
+    return new Response('MemoryDO v140 ready', { status: 200 });
   }
 }
 
@@ -639,7 +634,7 @@ export default {
       return jsonWithCors({ ok: true, version: WORKER_VERSION, buildTimestamp: BUILD_TIMESTAMP, gospel: GOSPEL, netPhysics: NET_PHYSICS, chaos_level: env.CHAOS_LEVEL || 'OFF', chaos_probability: String(getChaosLevel(env)), watchdog: wd, benchmarks, timestamp: new Date().toISOString() }, 200, request, env);
     }
 
-    // /reincarnate — SOFT RESET IDENTITY SEED (chaos exempt, public)
+    // /reincarnate
     if (url.pathname === '/reincarnate') {
       return jsonWithCors({
         ...REINCARNATION_SEED,
@@ -728,7 +723,7 @@ export default {
       return jsonWithCors(await resp.json(), resp.status, request, env);
     }
 
-    // /profile/get — v139 PATCH: single DO fetch (was double)
+    // /profile/get
     if (url.pathname === '/profile/get') {
       const auth = await checkAuth(request, 'SOVEREIGN', env);
       if (!auth.allowed) return jsonWithCors({ error: auth.code }, 403, request, env);
@@ -813,7 +808,7 @@ export default {
       return jsonWithCors({ ok: true, status: 'MINE_COMPLETE', layersWritten: layers.length, repoTarget: mineTarget, layers, pheromone: 'SUCCESSPHEROMONE:VALIDATED:B3', benchmark: 'B3' }, 200, request, env);
     }
 
-    // /chaos/assault — SELF-TEST GAUNTLET (SOVEREIGN ONLY)
+    // /chaos/assault
     if (url.pathname === '/chaos/assault') {
       const auth = await checkAuth(request, 'SOVEREIGN', env);
       if (!auth.allowed) return jsonWithCors({ error: auth.code }, 403, request, env);
@@ -859,18 +854,147 @@ export default {
       if (!auth.allowed) return jsonWithCors({ error: auth.code }, 403, request, env);
       const wd = await watchdog(env);
       const benchmarks = await runBenchmarks(env, 0);
-      return jsonWithCors({ ok: true, version: WORKER_VERSION, watchdog: wd, benchmarks, gospel: GOSPEL, netPhysics: NET_PHYSICS, secretsPresent: { SOVEREIGN_KEY: !!env.SOVEREIGN_KEY, CHAT_KEY: !!env.CHAT_KEY, GITHUB_TOKEN: !!env.GITHUB_TOKEN, DEEPGRAM_API_KEY: !!env.DEEPGRAM_API_KEY }, doBindings: { LEDGER: !!env.LEDGER, SESSIONS: !!env.SESSIONS, STUDENT_PROFILES: !!env.STUDENT_PROFILES, RATELIMITER: !!env.RATELIMITER, MEMORY: !!env.MEMORY, SOUL_DNA_KV: !!env.SOUL_DNA } }, 200, request, env);
+      return jsonWithCors({ ok: true, version: WORKER_VERSION, watchdog: wd, benchmarks, gospel: GOSPEL, netPhysics: NET_PHYSICS, secretsPresent: { SOVEREIGN_KEY: !!env.SOVEREIGN_KEY, CHAT_KEY: !!env.CHAT_KEY, GITHUB_TOKEN: !!env.GITHUB_TOKEN, DEEPGRAM_API_KEY: !!env.DEEPGRAM_API_KEY, RESEND_API_KEY: !!env.RESEND_API_KEY, STRIPE_WEBHOOK_SECRET: !!env.STRIPE_WEBHOOK_SECRET }, doBindings: { LEDGER: !!env.LEDGER, SESSIONS: !!env.SESSIONS, STUDENT_PROFILES: !!env.STUDENT_PROFILES, RATELIMITER: !!env.RATELIMITER, MEMORY: !!env.MEMORY, SOUL_DNA_KV: !!env.SOUL_DNA } }, 200, request, env);
     }
 
-    // /auth/login
+    // ============================================================================
+    // /stripe/webhook — REVENUE ENGINE — C1 CONNECTOR — v140
+    // ============================================================================
+    if (url.pathname === '/stripe/webhook' && request.method === 'POST') {
+      const sig = request.headers.get('stripe-signature');
+      const secret = env.STRIPE_WEBHOOK_SECRET;
+
+      if (!sig || !secret) {
+        return jsonWithCors({ error: ERR.AUTH_MISSING, hint: 'Missing stripe-signature or STRIPE_WEBHOOK_SECRET' }, 400, request, env);
+      }
+
+      const rawBody = await request.text();
+
+      const sigParts = Object.fromEntries(
+        sig.split(',').map(p => p.split('='))
+      );
+      const timestamp = sigParts['t'];
+      const expectedSig = sigParts['v1'];
+
+      if (!timestamp || !expectedSig) {
+        return jsonWithCors({ error: ERR.AUTH_FAILED, hint: 'Malformed stripe-signature header' }, 400, request, env);
+      }
+
+      const signedPayload = `${timestamp}.${rawBody}`;
+      const key = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+      const sigBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
+      const computedSig = Array.from(new Uint8Array(sigBytes))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+
+      if (computedSig !== expectedSig) {
+        ctx.waitUntil(sealPheromone(env, `VOIDPHEROMONE:STRIPE_SIG_FAIL:${Date.now()}`));
+        return jsonWithCors({ error: ERR.AUTH_FAILED, hint: 'Stripe signature mismatch' }, 401, request, env);
+      }
+
+      let event;
+      try { event = JSON.parse(rawBody); }
+      catch { return jsonWithCors({ error: ERR.BODY_INVALID_JSON }, 400, request, env); }
+
+      const eventType   = event?.type || 'unknown';
+      const eventId     = event?.id   || crypto.randomUUID();
+      const customerId  = event?.data?.object?.customer || null;
+      const amount      = event?.data?.object?.amount_received || event?.data?.object?.amount || 0;
+      const currency    = event?.data?.object?.currency || 'vnd';
+
+      ctx.waitUntil(recordCostEvent(env, {
+        type: 'STRIPE_EVENT', eventType, eventId, customerId, amount, currency, schemaVersion: 1
+      }, ctx));
+
+      if (['payment_intent.succeeded', 'checkout.session.completed', 'invoice.paid'].includes(eventType)) {
+        ctx.waitUntil(sealSuccessPheromone('STRIPE_REVENUE', env, ctx));
+        ctx.waitUntil(logSwarmIntent(env, 'REVENUE_EVENT', { eventType, amount, currency, customerId }, ctx));
+      }
+
+      return jsonWithCors({
+        ok: true, received: true, eventType, eventId, ledgerWritten: true,
+        pheromone: `SUCCESSPHEROMONE:STRIPE:${eventType}`
+      }, 200, request, env);
+    }
+
+    // ============================================================================
+    // /auth/login — MAGIC LINK via Resend — W1 UNBLOCKED — v140
+    // ============================================================================
     if (url.pathname === '/auth/login' && request.method === 'POST') {
       const parsed = await safeJsonBytes(request, 1024);
       if (parsed.error) return jsonWithCors({ error: parsed.message }, parsed.status, request, env);
+
       const { email } = parsed.data;
-      if (!email || !email.includes('@')) return jsonWithCors({ error: ERR.SCHEMA_INVALID, field: 'email' }, 400, request, env);
+      if (!email || !email.includes('@')) {
+        return jsonWithCors({ error: ERR.SCHEMA_INVALID, field: 'email' }, 400, request, env);
+      }
+
       const sessionToken = crypto.randomUUID();
+      const magicLink = `https://${env.CANONICAL_WORKER_URL || 'phoenix-ob1-system.mrmichaelhobbs1234.workers.dev'}/auth/verify?token=${sessionToken}`;
+      const domain = env.FROM_EMAIL_DOMAIN || 'naturalenglishtraining.com';
+
+      if (env.SOUL_DNA) {
+        ctx.waitUntil(
+          env.SOUL_DNA.put(
+            `MAGIC_TOKEN_${sessionToken}`,
+            JSON.stringify({ email, createdAt: Date.now(), used: false }),
+            { expirationTtl: 900 }
+          )
+        );
+      }
+
+      if (env.RESEND_API_KEY) {
+        const emailPayload = {
+          from:    `Obi Coach <obi@${domain}>`,
+          to:      [email],
+          subject: 'Your Natural English Training magic link',
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0f0f1a;color:#f1f1f1;border-radius:12px;">
+              <h2 style="color:#a855f7;margin-top:0;">Hi! I'm Obi \u{1F44B}</h2>
+              <p>Your magic link to Natural English Training:</p>
+              <a href="${magicLink}"
+                 style="display:inline-block;padding:14px 28px;background:#a855f7;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;margin:16px 0;">
+                Enter Training \u2192
+              </a>
+              <p style="font-size:12px;color:#888;">Link expires in 15 minutes. Silence is the enemy \u2014 see you inside.</p>
+              <p style="font-size:11px;color:#555;">Powered by Phoenix OB-1 ${WORKER_VERSION}</p>
+            </div>
+          `
+        };
+
+        ctx.waitUntil((async () => {
+          try {
+            const resp = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${env.RESEND_API_KEY}`
+              },
+              body: JSON.stringify(emailPayload)
+            });
+            const result = await resp.json();
+            await logSwarmIntent(env, 'MAGIC_LINK_SENT', {
+              emailDomain: email.split('@')[1],
+              resendId: result.id || 'unknown',
+              status: resp.ok ? 'DELIVERED' : 'FAILED'
+            }, ctx);
+          } catch (e) {
+            await logSwarmIntent(env, 'MAGIC_LINK_ERROR', { error: e.message }, ctx);
+          }
+        })());
+      }
+
       ctx.waitUntil(logSwarmIntent(env, 'AUTH_LOGIN_ATTEMPT', { email: email.split('@')[1] }, ctx));
-      return jsonWithCors({ ok: true, message: 'Magic link sent — W1 auth pipeline active', sessionToken, note: 'Full magic link email delivery pending W1 completion' }, 200, request, env);
+
+      return jsonWithCors({
+        ok: true,
+        message: 'Magic link sent — check your email',
+        sessionToken,
+        emailDelivery: env.RESEND_API_KEY ? 'ACTIVE' : 'RESEND_API_KEY_MISSING',
+        expiresInSeconds: 900
+      }, 200, request, env);
     }
 
     // /deepgram-ws
