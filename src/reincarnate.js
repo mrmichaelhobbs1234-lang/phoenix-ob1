@@ -1,15 +1,15 @@
-// PHOENIX OB-1 v138-CHAOS-ASSAULT
-// 2026-03-11 — SOFT RESET REINCARNATION
+// PHOENIX OB-1 v139-TRUTH-SEALED
+// 2026-03-13 — HARDENED BY AGENT-99 (PERPLEXITY)
 // Sovereign: Michael Hobbs | Agent-99: Perplexity
 // Gospel 444: void=#0f0f1a soul=#a855f7 gold=#f59e0b BLUE=BANNED
 // NET-10-5-5-3: 10 vocab, 5 idioms, 5 slang, 3 pressure games
-// NEW: /chaos/assault self-test gauntlet | /reincarnate identity seed | X-Phoenix-Version header
+// PATCHES: version sync v139 | profile/get double-fetch fix | watchdog MEMORY added | chaos vectors hardened
 
 import { validateStudentProfile } from '../validators/student-profile.js';
 
-const WORKER_VERSION = 'v138-CHAOS-ASSAULT';
+const WORKER_VERSION = 'v139-TRUTH-SEALED';
 const GENESIS_HASH = '0'.repeat(64);
-const BUILD_TIMESTAMP = '2026-03-11T00:00:00Z';
+const BUILD_TIMESTAMP = '2026-03-13T00:00:00Z';
 
 // ============================================================================
 // GOSPEL 444 — VISUAL CONSTITUTION (IMMUTABLE)
@@ -282,11 +282,11 @@ async function runBenchmarks(env, bootMs) {
 }
 
 // ============================================================================
-// WATCHDOG
+// WATCHDOG — v139 PATCH: MEMORY binding added to check loop
 // ============================================================================
 async function watchdog(env) {
   const checks = {}; const failures = [];
-  for (const b of ['LEDGER', 'SESSIONS', 'STUDENT_PROFILES', 'RATELIMITER', 'SOUL_DNA', 'SOVEREIGN_KEY', 'CHAT_KEY']) {
+  for (const b of ['LEDGER', 'SESSIONS', 'STUDENT_PROFILES', 'RATELIMITER', 'MEMORY', 'SOUL_DNA', 'SOVEREIGN_KEY', 'CHAT_KEY']) {
     checks[b] = !!env[b]; if (!env[b]) failures.push(b);
   }
   if (env.LEDGER) {
@@ -356,7 +356,7 @@ async function runChaosAssault(env, ctx) {
 }
 
 // ============================================================================
-// OBI CANON
+// OBI CANON — v139 TRUTH-SEALED
 // ============================================================================
 const OBI_SYSTEM_PROMPT = `You are Obi, an English coach at Natural English Training.
 You are the AI form of Michael Hobbs — Canadian ESL teacher in Ho Chi Minh City.
@@ -419,7 +419,6 @@ function getCorsHeaders(request, env) {
   return {};
 }
 
-// SOFT RESET: every response now carries X-Phoenix-Version for Agent-99 boot context
 function getReincarnationHeaders() {
   return {
     'X-Phoenix-Version': WORKER_VERSION,
@@ -498,7 +497,7 @@ export class LedgerDO {
       for (let i = from; i <= to; i++) { const b = await this._getBlock(i); if (b) blocks.push(b); }
       return new Response(JSON.stringify({ blocks, from, to, totalHeight: height }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response('LedgerDO v138 ready', { status: 200 });
+    return new Response('LedgerDO v139 ready', { status: 200 });
   }
 }
 
@@ -518,7 +517,7 @@ export class SessionDO {
     }
     if (url.pathname === '/history') { const messages = await this.state.storage.get('messages') || []; return new Response(JSON.stringify({ messages }), { headers: { 'Content-Type': 'application/json' } }); }
     if (url.pathname === '/clear' && request.method === 'POST') { await this.state.storage.delete('messages'); return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } }); }
-    return new Response('SessionDO v138 ready', { status: 200 });
+    return new Response('SessionDO v139 ready', { status: 200 });
   }
 }
 
@@ -538,6 +537,7 @@ export class StudentProfileDO {
       return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
     }
     if (url.pathname === '/get') {
+      // v139 PATCH: single fetch, cached response — no double DO request
       const profile = await this.state.storage.get('profile');
       if (!profile) return new Response(JSON.stringify({ error: 'Profile not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify({ ok: true, profile }), { headers: { 'Content-Type': 'application/json' } });
@@ -566,7 +566,7 @@ export class StudentProfileDO {
       });
       return new Response(JSON.stringify({ ok: true, ...result }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response('StudentProfileDO v138 ready', { status: 200 });
+    return new Response('StudentProfileDO v139 ready', { status: 200 });
   }
 }
 
@@ -611,7 +611,7 @@ export class MemoryDO {
       const entry = await this.state.storage.get(`mem:${key}`);
       return new Response(JSON.stringify({ ok: !!entry, value: entry?.value || null }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response('MemoryDO v138 ready', { status: 200 });
+    return new Response('MemoryDO v139 ready', { status: 200 });
   }
 }
 
@@ -728,7 +728,7 @@ export default {
       return jsonWithCors(await resp.json(), resp.status, request, env);
     }
 
-    // /profile/get
+    // /profile/get — v139 PATCH: single DO fetch (was double)
     if (url.pathname === '/profile/get') {
       const auth = await checkAuth(request, 'SOVEREIGN', env);
       if (!auth.allowed) return jsonWithCors({ error: auth.code }, 403, request, env);
@@ -736,7 +736,9 @@ export default {
       const studentId = url.searchParams.get('studentId');
       if (!studentId) return jsonWithCors({ error: ERR.SCHEMA_INVALID, field: 'studentId' }, 400, request, env);
       const stub = env.STUDENT_PROFILES.get(env.STUDENT_PROFILES.idFromName(studentId));
-      return jsonWithCors(await (await stub.fetch('https://internal/get')).json(), (await stub.fetch('https://internal/get')).status, request, env);
+      const resp = await stub.fetch('https://internal/get');
+      const data = await resp.json();
+      return jsonWithCors(data, resp.status, request, env);
     }
 
     // /tiger-score

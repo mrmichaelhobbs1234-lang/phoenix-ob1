@@ -1,7 +1,7 @@
 {
   "name": "phoenix-ob1",
-  "version": "134.0.0",
-  "description": "Phoenix OB-1 v134 — chaos engineered clean build",
+  "version": "139.0.0",
+  "description": "Phoenix OB-1 v139-TRUTH-SEALED — chaos engineered, hardened by Agent-99",
   "main": "src/reincarnate.js",
   "scripts": {
     "deploy": "wrangler deploy",
