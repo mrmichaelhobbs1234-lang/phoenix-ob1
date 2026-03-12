@@ -349,7 +349,7 @@ async function runChaosAssault(env, ctx) {
   const failed = Object.values(results).filter(v => v.startsWith('FAIL') || v.startsWith('ERROR')).length;
   const verdict = failed === 0 ? 'ALL_VECTORS_PASS' : failed <= 2 ? 'DEGRADED' : 'ASSAULT_FAILED';
 
-  ctx.waitUntil(logSwarmIntent(env, 'CHAOS_ASSAULT_RUN', { passed, failed, verdict }, ctx));
+  ctx.waitUntil(logSwarmIntent(env, 'CHAOS_ASSAULT_RUN', { passed, failed, verdict, vectors: results }, ctx));
   if (verdict === 'ALL_VECTORS_PASS') ctx.waitUntil(sealSuccessPheromone('CHAOS_ASSAULT', env, ctx));
 
   return { passed, failed, total: 6, verdict, vectors: results, worker: WORKER_VERSION, ts: new Date().toISOString() };
@@ -840,7 +840,27 @@ export default {
       if (!auth.allowed) return jsonWithCors({ error: auth.code }, 403, request, env);
       if (!env.SOUL_DNA) return jsonWithCors({ error: ERR.BINDING_MISSING, binding: 'SOUL_DNA' }, 500, request, env);
       const list = await env.SOUL_DNA.list({ prefix: 'SWARM_INTENT_', limit: 100 });
-      return jsonWithCors({ ok: true, intent_count: list.keys.length, intents: list.keys.map(k => k.name) }, 200, request, env);
+      const intents = await Promise.all(list.keys.map(async (key) => {
+        const raw = await env.SOUL_DNA.get(key.name);
+        try { return { key: key.name, ...JSON.parse(raw) }; }
+        catch { return { key: key.name, raw, parseError: true }; }
+      }));
+      return jsonWithCors({ ok: true, intent_count: intents.length, intents }, 200, request, env);
+    }
+
+    // /audit — CHAOS ENGINEER AUDIT TRAIL (last 100 steps)
+    if (url.pathname === '/audit') {
+      const auth = await checkAuth(request, 'SOVEREIGN', env);
+      if (!auth.allowed) return jsonWithCors({ error: auth.code }, 403, request, env);
+      if (!env.LEDGER) return jsonWithCors({ error: ERR.BINDING_MISSING, binding: 'LEDGER' }, 500, request, env);
+      const stub = env.LEDGER.get(env.LEDGER.idFromName('global'));
+      const vResp = await stub.fetch('https://internal/verify');
+      const vData = await vResp.json();
+      const chainHead = vData.chainHead ?? -1;
+      const from = Math.max(0, chainHead - 99);
+      const rResp = await stub.fetch(`https://internal/range?from=${from}&to=${chainHead}`);
+      const rData = await rResp.json();
+      return jsonWithCors({ ok: true, steps: rData.blocks || [], stepCount: (rData.blocks || []).length, chainHead, from, to: chainHead, valid: vData.valid, worker: WORKER_VERSION, ts: new Date().toISOString() }, 200, request, env);
     }
 
     // /souldna
